@@ -1,23 +1,25 @@
 Tab separated csv input files.
 
 Example data for the files is a small social network
-The row number corresponds to the node-id (node 0 is the reference node)
 
+Property names in first row.
 Property values not listed will not be set on the nodes or properties.
+
+The row number corresponds to the node-id (node 0 is the reference node)
 
 nodes.csv
 
-name  age works_on
+name    age works_on
 Michael 37  neo4j
-Rana  6
-Selma 4
+Rana    6
+Selma   4
 
-format rels.csv
+rels.csv
 
-start	end	type	since
-1 2 FATHER_OF	2004-01-01
-1	3	FATHER_OF  2007-09-01
-2 3 SISTER_OF 2008-05-03
+start	end	type	    since
+1     2   FATHER_OF	2004-01-01
+1     3   FATHER_OF 2007-09-01
+2     3   SISTER_OF 2008-05-03
 
 
 ynagzet:batchimport mh$ rm -rf target/db
