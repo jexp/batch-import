@@ -58,3 +58,32 @@ Importing 41246740 Relationships took 170 seconds
 212 seconds 
 ynagzet:batchimport mh$ du -sh target/db/
 3,2G	target/db/
+
+Optionally you can add nodes and relationships to indexes.
+
+Add four arguments per each index to command line:
+
+To create a full text node index called users using nodes_index.csv:
+node_index users fulltext nodes_index.csv 
+
+To create an exact relationship index called worked using rels_index.csv:
+rel_index worked exact rels_index.csv
+
+Example command line:
+java -server -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv node_index users fulltext nodes_index.csv rel_index worked exact rels_index.csv
+
+nodes_index.csv
+
+id	name	language
+1	Victor Richards	West Frisian
+2	Virginia Shaw	Korean
+3	Lois Simpson	Belarusian
+4	Randy Bishop	Hiri Motu
+5	Lori Mendoza	Tok Pisin
+
+rels_index.csv
+
+id	property1	property2
+0	cwqbnxrv	rpyqdwhk
+1	qthnrret	tzjmmhta
+2	dtztaqpy	pbmcdqyc
