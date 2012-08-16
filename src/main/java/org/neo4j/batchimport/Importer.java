@@ -37,9 +37,9 @@ public class Importer {
 				FileWriter fw = new FileWriter( "batch.properties" );
                 fw.append( "use_memory_mapped_buffers=true\n"
                         + "neostore.nodestore.db.mapped_memory=100M\n"
-                        + "neostore.relationshipstore.db.mapped_memory=1G\n"
-                        + "neostore.propertystore.db.mapped_memory=250M\n"
-                        + "neostore.propertystore.db.strings.mapped_memory=100M\n"
+                        + "neostore.relationshipstore.db.mapped_memory=500M\n"
+                        + "neostore.propertystore.db.mapped_memory=1G\n"
+                        + "neostore.propertystore.db.strings.mapped_memory=200M\n"
 		                 + "neostore.propertystore.db.arrays.mapped_memory=0M\n"
 		                 + "neostore.propertystore.db.index.keys.mapped_memory=15M\n"
 		                 + "neostore.propertystore.db.index.mapped_memory=15M" );
