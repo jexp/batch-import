@@ -4,6 +4,14 @@
     <artifactId>batch-import</artifactId>
     <version>0.1-SNAPSHOT</version>
     <name>Simple Batch Importer</name>
+
+  <repositories>
+    <repository>
+      <id>Neo4j Snapshots</id>
+      <url>http://m2.neo4j.org/content/repositories/snapshots</url>
+    </repository>
+  </repositories>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
