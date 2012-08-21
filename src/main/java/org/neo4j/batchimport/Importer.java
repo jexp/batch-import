@@ -77,15 +77,12 @@ public class Importer {
             if (nodesFile.exists()) importBatch.importNodes(nodesFile);
             if (relationshipsFile.exists()) importBatch.importRelationships(relationshipsFile);         
 			for (int i = 3; i < args.length; i = i + 4) {
-				indexName = args[i+1];
-				indexType = args[i+2];
 				indexFile = new File(args[i + 3]);
-				if (args[i].equals("node_index")) {
-					if (indexFile.exists()) importBatch.importNodeIndexes(indexFile, indexName, indexType);
-				} else {
-					if (indexFile.exists()) importBatch.importRelationshipIndexes(indexFile, indexName, indexType);
-				}
-			
+                if (!indexFile.exists()) continue;
+                indexName = args[i+1];
+                indexType = args[i+2];
+                BatchInserterIndex index = args[i].equals("node_index") ? importBatch.nodeIndexFor(indexName, indexType) : importBatch.relationshipIndexFor(indexName, indexType);
+                importBatch.importIndex(indexFile, indexName, index);
 			}
 		} finally {
             importBatch.finish();
@@ -98,7 +95,7 @@ public class Importer {
         report.finish();
     }
 
-    static class Data {
+    public static class Data {
         private Object[] data;
         private final int offset;
         private final String delim;
@@ -237,14 +234,8 @@ public class Importer {
         report.finishImport("Relationships");
     }
 
-    private void importNodeIndexes(File file, String indexName, String indexType) throws IOException {
-    	BatchInserterIndex index;
-    	if (indexType.equals("fulltext")) {
-    		index = lucene.nodeIndex( indexName, FULLTEXT_CONFIG );
-    	} else {
-    		index = lucene.nodeIndex( indexName, EXACT_CONFIG );
-    	}
-        
+    private void importIndex(File file, String indexName, BatchInserterIndex index) throws IOException {
+
         BufferedReader bf = new BufferedReader(new FileReader(file));
         
         final Data data = new Data(bf.readLine(), "\t", 1);
@@ -257,33 +248,20 @@ public class Importer {
             report.dots();
         }
                 
-        report.finishImport("Nodes into " + indexName + " Index");
+        report.finishImport("Done inserting into " + indexName + " Index");
     }
 
-    private void importRelationshipIndexes(File file, String indexName, String indexType) throws IOException {
-    	BatchInserterIndex index;
-    	if (indexType.equals("fulltext")) {
-    		index = lucene.relationshipIndex( indexName, FULLTEXT_CONFIG );
-    	} else {
-    		index = lucene.relationshipIndex( indexName, EXACT_CONFIG );
-    	}
-
-        BufferedReader bf = new BufferedReader(new FileReader(file));
-        
-        final Data data = new Data(bf.readLine(), "\t", 1);
-        Object[] rel = new Object[1];
-        String line;
-        report.reset();
-        while ((line = bf.readLine()) != null) {        
-            final Map<String, Object> properties = data.update(line, rel);
-            index.add(id(rel[0]), properties);
-            report.dots();
-        }
-                
-        report.finishImport("Relationships into " + indexName + " Index");
-
+    private BatchInserterIndex nodeIndexFor(String indexName, String indexType) {
+        return lucene.nodeIndex(indexName, configFor(indexType));
     }
 
+    private BatchInserterIndex relationshipIndexFor(String indexName, String indexType) {
+        return lucene.relationshipIndex(indexName, configFor(indexType));
+    }
+
+    private Map<String, String> configFor(String indexType) {
+        return indexType.equals("fulltext") ? FULLTEXT_CONFIG : EXACT_CONFIG;
+    }
 
     static class RelType implements RelationshipType {
         String name;
@@ -298,7 +276,7 @@ public class Importer {
         }
     }
 
-    enum Type {
+    public enum Type {
         BOOLEAN {
             @Override
             public Object convert(String value) {
