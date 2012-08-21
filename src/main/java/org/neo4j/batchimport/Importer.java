@@ -8,11 +8,7 @@ import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
 import org.neo4j.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 
 import org.neo4j.helpers.collection.MapUtil;
@@ -53,9 +49,21 @@ public class Importer {
     		System.out.println(e.getMessage());
         }
                 
-        db = BatchInserters.inserter(graphDb.getAbsolutePath(), config);
-        lucene = new LuceneBatchInserterIndexProvider(db);
-        report = new Report(10 * 1000 * 1000, 100);
+        db = createBatchInserter(graphDb, config);
+        lucene = createIndexProvider();
+        report = createReport();
+    }
+
+    protected StdOutReport createReport() {
+        return new StdOutReport(10 * 1000 * 1000, 100);
+    }
+
+    protected LuceneBatchInserterIndexProvider createIndexProvider() {
+        return new LuceneBatchInserterIndexProvider(db);
+    }
+
+    protected BatchInserter createBatchInserter(File graphDb, Map<String, String> config) {
+        return BatchInserters.inserter(graphDb.getAbsolutePath(), config);
     }
 
     public static void main(String[] args) throws IOException {
@@ -74,22 +82,22 @@ public class Importer {
         }
         Importer importBatch = new Importer(graphDb);
         try {
-            if (nodesFile.exists()) importBatch.importNodes(nodesFile);
-            if (relationshipsFile.exists()) importBatch.importRelationships(relationshipsFile);         
+            if (nodesFile.exists()) importBatch.importNodes(new FileReader(nodesFile));
+            if (relationshipsFile.exists()) importBatch.importRelationships(new FileReader(relationshipsFile));
 			for (int i = 3; i < args.length; i = i + 4) {
 				indexFile = new File(args[i + 3]);
                 if (!indexFile.exists()) continue;
                 indexName = args[i+1];
                 indexType = args[i+2];
                 BatchInserterIndex index = args[i].equals("node_index") ? importBatch.nodeIndexFor(indexName, indexType) : importBatch.relationshipIndexFor(indexName, indexType);
-                importBatch.importIndex(indexFile, indexName, index);
+                importBatch.importIndex(indexName, index, new FileReader(indexFile));
 			}
 		} finally {
             importBatch.finish();
         }
     }
 
-    private void finish() {
+    void finish() {
         lucene.shutdown();
         db.shutdown();
         report.finish();
@@ -151,7 +159,7 @@ public class Importer {
                 }
                 if (i >= offset && lineData[i]!=null) {
                     data[count++]=fields[i];
-                    data[count++]=types[i-offset].convert(lineData[i]);
+                    data[count++]=types[i].convert(lineData[i]);
                 }
             }
             return count;
@@ -173,26 +181,29 @@ public class Importer {
 
     }
 
-    static class Report {
+    static class StdOutReport implements Report {
         private final long batch;
         private final long dots;
         private long count;
         private long total = System.currentTimeMillis(), time, batchTime;
 
-        public Report(long batch, int dots) {
+        public StdOutReport(long batch, int dots) {
             this.batch = batch;
             this.dots = batch / dots;
         }
 
+        @Override
         public void reset() {
             count = 0;
             batchTime = time = System.currentTimeMillis();
         }
 
+        @Override
         public void finish() {
             System.out.println("\nTotal import time: "+ (System.currentTimeMillis() - total) / 1000 + " seconds ");
         }
 
+        @Override
         public void dots() {
             if ((++count % dots) != 0) return;
             System.out.print(".");
@@ -202,13 +213,14 @@ public class Importer {
             batchTime = now;
         }
 
+        @Override
         public void finishImport(String type) {
             System.out.println("\nImporting " + count + " " + type + " took " + (System.currentTimeMillis() - time) / 1000 + " seconds ");
         }
     }
 
-    private void importNodes(File file) throws IOException {
-        BufferedReader bf = new BufferedReader(new FileReader(file));
+    void importNodes(Reader reader) throws IOException {
+        BufferedReader bf = new BufferedReader(reader);
         final Data data = new Data(bf.readLine(), "\t", 0);
         String line;
         report.reset();
@@ -219,8 +231,8 @@ public class Importer {
         report.finishImport("Nodes");
     }
 
-    private void importRelationships(File file) throws IOException {
-        BufferedReader bf = new BufferedReader(new FileReader(file));
+    void importRelationships(Reader reader) throws IOException {
+        BufferedReader bf = new BufferedReader(reader);
         final Data data = new Data(bf.readLine(), "\t", 3);
         Object[] rel = new Object[3];
         final RelType relType = new RelType();
@@ -234,9 +246,9 @@ public class Importer {
         report.finishImport("Relationships");
     }
 
-    private void importIndex(File file, String indexName, BatchInserterIndex index) throws IOException {
+    void importIndex(String indexName, BatchInserterIndex index, Reader reader) throws IOException {
 
-        BufferedReader bf = new BufferedReader(new FileReader(file));
+        BufferedReader bf = new BufferedReader(reader);
         
         final Data data = new Data(bf.readLine(), "\t", 1);
         Object[] node = new Object[1];
