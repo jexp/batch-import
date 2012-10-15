@@ -3,14 +3,13 @@ package org.neo4j.batchimport;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
+import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
-import org.neo4j.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 
 import java.io.File;
 import java.io.StringReader;
 import java.util.Map;
 
-import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
