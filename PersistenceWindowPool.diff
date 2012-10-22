@@ -1,0 +1,307 @@
+--- ./kernel/src/main/java/org/neo4j/kernel/impl/nioneo/store/PersistenceWindowPool.java	2012-10-22 03:36:34.000000000 +0200
++++ /Users/mh/java/neo/batchperformance/src/main/java/org/neo4j/kernel/impl/nioneo/store/PersistenceWindowPool.java	2012-10-22 03:25:15.000000000 +0200
+@@ -31,9 +31,10 @@
+ import java.util.concurrent.atomic.AtomicBoolean;
+ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.concurrent.atomic.AtomicLong;
++import java.util.logging.Level;
++import java.util.logging.Logger;
+ 
+ import org.neo4j.helpers.Pair;
+-import org.neo4j.kernel.impl.util.StringLogger;
+ 
+ /**
+  * Manages {@link PersistenceWindow persistence windows} for a store. Each store
+@@ -45,7 +46,7 @@
+  */
+ public class PersistenceWindowPool
+ {
+-    private static final int MAX_BRICK_COUNT = 100000;
++    private static final int MAX_BRICK_COUNT = 1000;
+ 
+     private final String storeName;
+     // == recordSize
+@@ -60,7 +61,8 @@
+     private BrickElement brickArray[] = new BrickElement[0];
+     private int brickMiss = 0;
+ 
+-    private static final int REFRESH_BRICK_COUNT = 50000;
++    private static Logger log = Logger.getLogger( PersistenceWindowPool.class.getName() );
++    private static final int REFRESH_BRICK_COUNT = 100;
+     private final FileChannel.MapMode mapMode;
+ 
+     private int hit = 0;
+@@ -75,8 +77,7 @@
+     private final AtomicInteger avertedRefreshes = new AtomicInteger();
+     private final AtomicLong refreshTime = new AtomicLong();
+     private final AtomicInteger refreshes = new AtomicInteger();
+-    private StringLogger log;
+-
++    
+     /**
+      * Create new pool for a store.
+      *
+@@ -91,9 +92,9 @@
+      * @throws IOException
+      *             If unable to create pool
+      */
+-    public PersistenceWindowPool( String storeName, int blockSize,
+-        FileChannel fileChannel, long mappedMem,
+-        boolean useMemoryMappedBuffers, boolean readOnly, StringLogger log )
++    public PersistenceWindowPool(String storeName, int blockSize,
++                                  FileChannel fileChannel, long mappedMem,
++                                  boolean useMemoryMappedBuffers, boolean readOnly)
+     {
+         this.storeName = storeName;
+         this.blockSize = blockSize;
+@@ -102,7 +103,6 @@
+         this.useMemoryMapped = useMemoryMappedBuffers;
+         this.readOnly = readOnly;
+         this.mapMode = readOnly ? MapMode.READ_ONLY : MapMode.READ_WRITE;
+-        this.log = log;
+         setupBricks();
+         dumpStatus();
+     }
+@@ -128,25 +128,8 @@
+         }
+         while ( window == null )
+         {
+-            if ( brickSize > 0 )
+-            {
+-                int brickIndex = positionToBrickIndex( position );
+-                if ( brickIndex >= brickArray.length )
+-                {
+-                    expandBricks( brickIndex + 1 );
+-                }
+-                BrickElement brick = brickArray[brickIndex];
+-                window = brick.getWindow();
+-                if ( window != null && !window.markAsInUse() )
+-                {
+-                    // Oops, a refreshBricks call from another thread just closed
+-                    // this window, treat it as if we hadn't even found it.
+-                    window = null;
+-                }
++            window = getWindow(position, window);
+ 
+-                // assert window == null || window.encapsulates( position );
+-                brick.setHit();
+-            }
+             if ( window == null )
+             {
+                 // There was no mapped window for this brick. Go for active window instead.
+@@ -155,45 +138,96 @@
+                 // updates for these statistics, right?
+                 miss++;
+                 brickMiss++;
+-    
+-                // Lock-free implementation of instantiating an active window for this position
+-                // See if there's already an active window for this position
+-                PersistenceRow dpw = activeRowWindows.get( position );
+-                if ( dpw != null && dpw.markAsInUse() )
+-                {   // ... there was and we managed to mark it as in use
+-                    window = dpw;
++                LockableWindow row = getRow(position, window);
++                if (row!=null) {
++                    window = row;
+                     break;
+                 }
+-                
+-                // Either there was no active window for this position or it got
+-                // closed right before we managed to mark it as in use.
+-                // Either way instantiate a new active window for this position
+-                dpw = new PersistenceRow( position, blockSize, fileChannel );
+-                PersistenceRow existing = activeRowWindows.putIfAbsent( position, dpw );
+-                if ( existing == null )
+-                {
+-                    // No other thread managed to create an active window for
+-                    // this position before us.
+-                    window = dpw;
+-                }
+-                else
+-                {
+-                    // Someone else put it there before us. Close this row
+-                    // which was unnecessarily opened. The next go in this loop
+-                    // will get that one instead.
+-                    dpw.close();
+-                }
++
++
++                window = createRow(position, window);
++
++
+             }
+             else
+             {
+                 hit++;
+             }
+         }
+-
++        window.markAsInUse();
+         window.lock( operationType );
+         return window;
+     }
+ 
++    private LockableWindow getRow(long position, LockableWindow window) {
++        // Lock-free implementation of instantiating an active window for this position
++        // See if there's already an active window for this position
++        PersistenceRow dpw = activeRowWindows.get( position );
++        if ( dpw != null && dpw.markAsInUse() )
++        {   // ... there was and we managed to mark it as in use
++            return dpw;
++        }
++        return null;
++    }
++
++    private LockableWindow createRow(long position, LockableWindow window) {
++        // Either there was no active window for this position or it got
++        // closed right before we managed to mark it as in use.
++        // Either way instantiate a new active window for this position
++        PersistenceRow dpw = new PersistenceRow( position, blockSize, fileChannel );
++        PersistenceRow existing = activeRowWindows.putIfAbsent( position, dpw );
++        if ( existing == null )
++        {
++            // No other thread managed to create an active window for
++            // this position before us.
++            window = dpw;
++        }
++        else
++        {
++            // Someone else put it there before us. Close this row
++            // which was unnecessarily opened. The next go in this loop
++            // will get that one instead.
++            dpw.close();
++        }
++        return window;
++    }
++
++    private LockableWindow getWindow(long position, LockableWindow window) {
++        if ( brickSize > 0 )
++        {
++            int brickIndex = positionToBrickIndex( position );
++            if ( brickIndex < brickArray.length )
++            {
++                BrickElement brick = brickArray[brickIndex];
++                window = brick.getWindow();
++                brick.setHit();
++                if (window == null) { //  || !window.markAsInUse() TODO this should only be a query method but marks instead!
++                    if ( memUsed + brickSize <= availableMem ) {
++                        allocateNewWindow(brick);
++                        return getWindow(position,window);
++                    } else {
++                        freeWindows(brickCount/10);
++                        return getWindow(position,window);
++                    }
++                    /*
++                    // Oops, a refreshBricks call from another thread just closed
++                    // this window, treat it as if we hadn't even found it.
++                    window = null;
++                    */
++                }
++
++                // assert window == null || window.encapsulates( position );
++                brick.setHit();
++            }
++            else
++            {
++                expandBricks( brickIndex + 1 );
++                window = brickArray[brickIndex].getWindow();
++            }
++        }
++        return window;
++    }
++
+     private int positionToBrickIndex( long position )
+     {
+         return (int) (position * blockSize / brickSize);
+@@ -206,8 +240,8 @@
+     
+     void dumpStatistics()
+     {
+-        log.logMessage( storeName + " hit=" + hit + " miss=" + miss + " switches="
+-                        + switches + " ooe=" + ooe );
++        log.finest( storeName + " hit=" + hit + " miss=" + miss + " switches="
++            + switches + " ooe=" + ooe );
+     }
+ 
+     /**
+@@ -329,14 +363,13 @@
+         {
+             return;
+         }
+-
+         // If we can't fit even 10 blocks in available memory don't even try
+         // to use available memory.
+-        if(availableMem > 0 && availableMem < blockSize * 10l )
++        if ( availableMem > 0 && availableMem < blockSize * 10l )
+         {
+             logWarn( "Unable to use " + availableMem
+-                    + "b as memory mapped windows, need at least " + blockSize * 10
+-                    + "b (block size * 10)" );
++                + "b as memory mapped windows, need at least " + blockSize * 10
++                + "b (block size * 10)" );
+             logWarn( "Memory mapped windows have been turned off" );
+             availableMem = 0;
+             brickCount = 0;
+@@ -348,7 +381,7 @@
+             double ratio = (availableMem + 0.0d) / fileSize;
+             if ( ratio >= 1 )
+             {
+-                brickSize = (int) (availableMem / 1000);
++                brickSize = (int) (availableMem / 100);
+                 if ( brickSize < 0 )
+                 {
+                     brickSize = Integer.MAX_VALUE;
+@@ -358,7 +391,7 @@
+             }
+             else
+             {
+-                brickCount = (int) (1000.0d / ratio);
++                brickCount = (int) (100.0d / ratio);
+                 if ( brickCount > MAX_BRICK_COUNT )
+                 {
+                     brickCount = MAX_BRICK_COUNT;
+@@ -396,6 +429,7 @@
+                 brickSize = Integer.MAX_VALUE;
+             }
+             brickSize = (brickSize / blockSize) * blockSize;
++            brickCount = 1;
+         }
+         brickArray = new BrickElement[brickCount];
+         for ( int i = 0; i < brickCount; i++ )
+@@ -433,7 +467,7 @@
+         {
+             BrickElement mappedBrick = mappedBricks.get( i );
+             LockableWindow window = mappedBrick.getWindow();
+-            if ( window.writeOutAndCloseIfFree( readOnly ) )
++            if ( window!=null && window.writeOutAndCloseIfFree( readOnly ) )
+             {
+                 mappedBrick.setWindow( null );
+                 memUsed -= brickSize;
+@@ -629,9 +663,9 @@
+     {
+         try
+         {
+-            log.logMessage( "[" + storeName + "] brickCount=" + brickCount
+-                            + " brickSize=" + brickSize + "b mappedMem=" + availableMem
+-                            + "b (storeSize=" + fileChannel.size() + "b)" );
++            log.fine( "[" + storeName + "] brickCount=" + brickCount
++                + " brickSize=" + brickSize + "b mappedMem=" + availableMem
++                + "b (storeSize=" + fileChannel.size() + "b)" );
+         }
+         catch ( IOException e )
+         {
+@@ -642,12 +676,12 @@
+ 
+     private void logWarn( String logMessage )
+     {
+-        log.logMessage( "[" + storeName + "] " + logMessage );
++        log.warning( "[" + storeName + "] " + logMessage );
+     }
+ 
+     private void logWarn( String logMessage, Throwable cause )
+     {
+-        log.logMessage( "[" + storeName + "] " + logMessage, cause );
++        log.log( Level.WARNING, "[" + storeName + "] " + logMessage, cause );
+     }
+ 
+     WindowPoolStats getStats()
