@@ -1,12 +1,12 @@
 package org.neo4j.batchimport;
 
 import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
-import org.neo4j.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 
 import java.io.*;
 import java.util.*;
@@ -14,7 +14,6 @@ import java.util.*;
 import org.neo4j.helpers.collection.MapUtil;
 
 import static org.neo4j.helpers.collection.MapUtil.map;
-import static org.neo4j.helpers.collection.MapUtil.stringMap;
 import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.EXACT_CONFIG;
 import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.FULLTEXT_CONFIG;
 
@@ -42,8 +41,7 @@ public class Importer {
 		        fw.close();
 	        }
 
-        config = MapUtil.load( new File(
-                "batch.properties" ) );
+        config = MapUtil.load( new File( "batch.properties" ) );
 
         } catch (Exception e) {
     		System.out.println(e.getMessage());

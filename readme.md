@@ -6,12 +6,11 @@ See this blog post for [a detailed walk-through](http://maxdemarzi.com/2012/02/2
 
 Compile the project using Maven 2.
 
-    mvn clean compile assembly:single
+    mvn clean test-compile assembly:single
   
 Generate some sample data.
 
-    javac ./src/test/java/TestDataGenerator.java -d .
-    java TestDataGenerator
+    java -cp target/test-classes TestDataGenerator [# of nodes in million] [# of rels per node]
   
 Import data into db.
 

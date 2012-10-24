@@ -8,27 +8,26 @@ import java.util.Random;
  * @since 13.01.12
  */
 public class TestDataGenerator {
-
-    private static int NODES = 8 * 1000 * 1000;
-    private static int RELS_PER_NODE = 50;
+    private static final int MILLION = 1000 * 1000;
     private static final String[] TYPES = {"ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN"};
     public static final int NUM_TYPES = 10;
 
+    private static Integer intArgument(String[] args, int index, int defaultValue) {
+        if (index>=args.length) return defaultValue;
+        try {
+            return Integer.valueOf(args[index]);
+        } catch(NumberFormatException nfe) {
+            System.err.println("Cannot parse "+args[index]+" as numeric value.");
+            System.exit(1);
+            throw new RuntimeException(nfe);
+        }
+    }
+
     public static void main(String[] args) throws IOException {
-    	try { NODES = Integer.parseInt(args[0]) * 1000 * 1000; }  // in millions
-    	catch (NumberFormatException e) {
-    		System.err.println("First argument must be an integer to set number of nodes in millions. Default: 8");
-            System.exit(1);
-    	}
-    	catch (ArrayIndexOutOfBoundsException e) {}
-    	
-    	try { RELS_PER_NODE = Integer.parseInt(args[1]); }        
-    	catch (NumberFormatException e) {
-    		System.err.println("Second argument must be an integer to set number of max relations per node. Default: 50");
-            System.exit(1);
-    	}
-    	catch (ArrayIndexOutOfBoundsException e) {}
-    	
+        int NODES = intArgument(args, 0, 8) * MILLION;
+        int RELS_PER_NODE = intArgument(args, 1, 50);
+
+        System.out.printf("Creating a test-file with %d nodes and %d rels per node%n",NODES,RELS_PER_NODE);
         Random rnd = new Random();
         long relCount=0, time = System.currentTimeMillis();
         BufferedWriter nodeFile = new BufferedWriter(new FileWriter("nodes.csv"));
@@ -47,6 +46,6 @@ public class TestDataGenerator {
         }
         nodeFile.close();
         relFile.close();
-        System.out.println("Creating "+NODES+" and "+relCount+" Relationships took "+((System.currentTimeMillis()-time)/1000)+" seconds.");
+        System.out.println("Creating "+ NODES +" and "+relCount+" Relationships took "+((System.currentTimeMillis()-time)/1000)+" seconds.");
     }
 }

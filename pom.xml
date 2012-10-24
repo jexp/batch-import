@@ -5,6 +5,17 @@
     <version>0.1-SNAPSHOT</version>
     <name>Simple Batch Importer</name>
 
+    <properties>
+        <neo4j.version>1.9-SNAPSHOT</neo4j.version>
+    </properties>
+
+    <repositories>
+        <repository>
+            <id>Neo4j Snapshots</id>
+            <url>http://m2.neo4j.org/content/repositories/snapshots</url>
+        </repository>
+    </repositories>
+
     <dependencies>
         <dependency>
             <groupId>junit</groupId>
@@ -21,12 +32,12 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-kernel</artifactId>
-            <version>1.8</version>
+            <version>${neo4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-lucene-index</artifactId>
-            <version>1.8</version>
+            <version>${neo4j.version}</version>
         </dependency>
 
     </dependencies>
