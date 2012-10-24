@@ -1,3 +1,5 @@
+import org.junit.Ignore;
+
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -7,6 +9,7 @@ import java.util.Random;
  * @author mh
  * @since 13.01.12
  */
+@Ignore
 public class TestDataGenerator {
     private static final int MILLION = 1000 * 1000;
     private static final String[] TYPES = {"ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN"};
