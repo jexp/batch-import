@@ -10,6 +10,7 @@ import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
 
 import java.io.*;
 import java.util.*;
+import java.util.regex.Pattern;
 
 import org.neo4j.helpers.collection.MapUtil;
 
@@ -104,7 +105,7 @@ public class Importer {
     public static class Data {
         private Object[] data;
         private final int offset;
-        private final String delim;
+        private final Pattern delim;
         private final String[] fields;
         private final String[] lineData;
         private final Type types[];
@@ -113,7 +114,7 @@ public class Importer {
 
         public Data(String header, String delim, int offset) {
             this.offset = offset;
-            this.delim = delim;
+            this.delim = Pattern.compile(delim);
             fields = header.split(delim);
             lineSize = fields.length;
             types = parseTypes(fields);
@@ -145,19 +146,13 @@ public class Importer {
         }
 
         private int split(String line) {
-            final StringTokenizer st = new StringTokenizer(line, delim,true);
+            String[] st = delim.split(line, lineSize);
             int count=0;
             for (int i = 0; i < lineSize; i++) {
-                String value = st.nextToken();
-                if (value.equals(delim)) {
-                    lineData[i] = null;
-                } else {
-                    lineData[i] = value.trim().isEmpty() ? null : value;
-                    if (i< lineSize -1) st.nextToken();
-                }
-                if (i >= offset && lineData[i]!=null) {
-                    data[count++]=fields[i];
-                    data[count++]=types[i].convert(lineData[i]);
+                lineData[i] = (st[i] == null || st[i].trim().isEmpty()) ? null : st[i];
+                if (i >= offset) {
+                    data[count++] = fields[i];
+                    data[count++] = lineData[i] != null ? types[i].convert(lineData[i]) : null;
                 }
             }
             return count;
