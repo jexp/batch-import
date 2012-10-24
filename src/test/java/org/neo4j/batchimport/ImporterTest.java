@@ -54,6 +54,13 @@ public class ImporterTest {
     }
 
     @Test
+    public void testImportNodeWithNullField() throws Exception {
+        importer.importNodes(new StringReader("a\tb\tc\nfoo\t\t"));
+        importer.finish();
+        verify(inserter, atLeastOnce()).createNode(eq(map("a", "foo","b", null, "c", null)));
+    }
+
+    @Test
     public void testImportNodeWithIndividualTypes() throws Exception {
         importer.importNodes(new StringReader("a:int\tb:float\tc:float\n10\t10.0\t1E+10"));
         importer.finish();
