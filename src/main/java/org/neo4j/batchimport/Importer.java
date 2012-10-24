@@ -145,19 +145,13 @@ public class Importer {
         }
 
         private int split(String line) {
-            final StringTokenizer st = new StringTokenizer(line, delim,true);
+            String[] st = line.split(delim, lineSize);
             int count=0;
             for (int i = 0; i < lineSize; i++) {
-                String value = st.nextToken();
-                if (value.equals(delim)) {
-                    lineData[i] = null;
-                } else {
-                    lineData[i] = value.trim().isEmpty() ? null : value;
-                    if (i< lineSize -1) st.nextToken();
-                }
-                if (i >= offset && lineData[i]!=null) {
-                    data[count++]=fields[i];
-                    data[count++]=types[i].convert(lineData[i]);
+                lineData[i] = (st[i] == null || st[i].trim().isEmpty()) ? null : st[i];
+                if (i >= offset) {
+                    data[count++] = fields[i];
+                    data[count++] = lineData[i] != null ? types[i].convert(lineData[i]) : null;
                 }
             }
             return count;
