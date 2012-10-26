@@ -61,13 +61,13 @@ public class DisruptorTest {
     public static final Long VALUE = 42L;
 
     private final static int RING_SIZE = 1 << 18; // 22
-    public static final int ITERATIONS = 1 * 1000 * 1000;
+    public static final int ITERATIONS = 10 * 1000 * 1000;
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         FileUtils.deleteRecursively(new File(STORE_DIR));
-        BatchInserterImpl inserter = (BatchInserterImpl) BatchInserters.inserter(STORE_DIR, stringMap("use_memory_mapped_buffers", "false",
-                "dump_configuration", "true",
+        BatchInserterImpl inserter = (BatchInserterImpl) BatchInserters.inserter(STORE_DIR, stringMap("use_memory_mapped_buffers", "true",
+                //"dump_configuration", "true",
                 "cache_type", "none",
                 "neostore.nodestore.db.mapped_memory", "50M",
                 "neostore.propertystore.db.mapped_memory", "1G",
@@ -76,7 +76,7 @@ public class DisruptorTest {
         NeoStore neoStore = inserter.getNeoStore();
         NodeStore nodeStore = neoStore.getNodeStore();
         nodeStore.setHighId(ITERATIONS + 1);
-        final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors()*2);
+        final ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
         //final ExecutorService executor = Executors.newCachedThreadPool();
 
         int maxPropertyId = inserter.createAllPropertyIndexes(asList("blocked", "age","weight"));
@@ -97,22 +97,16 @@ public class DisruptorTest {
         for (int i = 0; i < propertyMappingHandlers.length; i++) {
             propertyMappingHandlers[i] = new PropertyMappingEventHandler(inserter, i);
         }
-        RelationshipRecordCreator[] relationshipRecordCreators = new RelationshipRecordCreator[RelationshipRecordCreator.MASK + 1];
-        for (int i = 0; i < relationshipRecordCreators.length; i++) {
-            relationshipRecordCreators[i] = new RelationshipRecordCreator(i);
-        }
         RelIdSettingEventHandler relIdSettingEventHandler = new RelIdSettingEventHandler();
 
         //NodeWriter nodeWriter = new NodeWriter(new File(nodeStore.getStorageFileName()));
         NodeRecordWritingEventHandler nodeWriter = new NodeRecordWritingEventHandler(nodeStore);
         PropertyWriter propertyWriter = new PropertyWriter(neoStore.getPropertyStore());
-        RecordValidator validator = new RecordValidator();
-        RelationshipWriter relationshipWriter = new RelationshipWriter(neoStore.getRelationshipStore(), validator);
+        RelationshipWriteHandler relationshipWriter = new RelationshipWriteHandler(new RelationshipRecordWriter(neoStore.getRelationshipStore()));
+        //RelationshipWriteHandler relationshipWriter = new RelationshipWriteHandler(new RelationshipFileWriter(new File(neoStore.getRelationshipStore().getStorageFileName())));
         incomingEventDisruptor.
                 handleEventsWith(propertyMappingHandlers).
                 then(new PropertyRecordEventHandler(),idSettingEventHandler, relIdSettingEventHandler).
-                then(relationshipRecordCreators).
-                // then(new PropertyRecordHighIdEventHandler(neoStore.getPropertyStore())).
                 then(nodeWriter, relationshipWriter, propertyWriter); //
         RingBuffer<RecordEvent> ringBuffer = incomingEventDisruptor.start();
         long time = System.currentTimeMillis();
@@ -151,7 +145,6 @@ public class DisruptorTest {
 
         System.out.println("ids " + idSettingEventHandler);
         System.out.println("relIds " + relIdSettingEventHandler);
-        System.out.println("relRecords " + Arrays.deepToString(relationshipRecordCreators));
 
         System.out.println("wrote nodes " + nodeWriter);
         System.out.println("wrote rels " + relationshipWriter);
@@ -307,7 +300,7 @@ public class DisruptorTest {
             if (ints==null) {
                 ints = new int[arraySize];
                 Arrays.fill(ints,-1);
-                inner.putIfAbsent(key, ints);
+                inner.put(key, ints);
             }
             for (int i=0;i<arraySize;i++) {
                 if (ints[i]==-1) {
@@ -403,7 +396,7 @@ public class DisruptorTest {
             if (nodeStore.getHighId() < event.id) nodeStore.setHighId(event.id+1);
             //printNode(event);
             nodeStore.updateRecord(event.record());
-            if (endOfBatch) nodeStore.flushAll();
+            // if (endOfBatch) nodeStore.flushAll();
         }
 
         @Override
@@ -416,13 +409,17 @@ public class DisruptorTest {
         }
     }
 
-    interface IRelationshipWriter {
-        void create(RecordEvent event, Rel rel, long prevId, long nextId);
-        void update(long relId, boolean outgoing, long prevId, long nextId);
-        void flush();
+    interface RelationshipWriter {
+        void create(RecordEvent event, Rel rel, long prevId, long nextId) throws IOException;
+        void update(long relId, boolean outgoing, long prevId, long nextId) throws IOException;
+        void flush() throws IOException;
+
+        void start(long maxRelationshipId);
+
+        void close() throws IOException;
     }
 
-    public static class RelationshipRecordWriter implements IRelationshipWriter {
+    public static class RelationshipRecordWriter implements RelationshipWriter {
         private final RelationshipStore relationshipStore;
 
         public RelationshipRecordWriter(RelationshipStore relationshipStore) {
@@ -452,41 +449,48 @@ public class DisruptorTest {
             relationshipStore.flushAll();
         }
 
-    }
-    // todo move into class
-    private static RelationshipRecord createRecord(long from, Rel rel, long prevId, long nextId) {
-        long id = rel.id;
-        RelationshipRecord relRecord = rel.outgoing() ?
-                    new RelationshipRecord( id, from, rel.other(), rel.type ) :
-                    new RelationshipRecord( id, rel.other(), from,  rel.type );
-        relRecord.setInUse(true);
-        relRecord.setCreated();
-        if (rel.outgoing()) {
-            relRecord.setFirstPrevRel(prevId);
-            relRecord.setFirstNextRel(nextId);
-        } else {
-            relRecord.setSecondPrevRel(prevId);
-            relRecord.setSecondNextRel(nextId);
+        @Override
+        public void start(long maxRelationshipId) {
+            if (relationshipStore.getHighId() < maxRelationshipId) relationshipStore.setHighId(maxRelationshipId +1);
         }
-        relRecord.setNextProp(rel.firstPropertyId);
-        return relRecord;
+
+        @Override
+        public void close() throws IOException {
+            flush();
+        }
+
+        private RelationshipRecord createRecord(long from, Rel rel, long prevId, long nextId) {
+            long id = rel.id;
+            RelationshipRecord relRecord = rel.outgoing() ?
+                        new RelationshipRecord( id, from, rel.other(), rel.type ) :
+                        new RelationshipRecord( id, rel.other(), from,  rel.type );
+            relRecord.setInUse(true);
+            relRecord.setCreated();
+            if (rel.outgoing()) {
+                relRecord.setFirstPrevRel(prevId);
+                relRecord.setFirstNextRel(nextId);
+            } else {
+                relRecord.setSecondPrevRel(prevId);
+                relRecord.setSecondNextRel(nextId);
+            }
+            relRecord.setNextProp(rel.firstPropertyId);
+            return relRecord;
+        }
     }
 
-    public static class RelationshipRecordCreator implements EventHandler<RecordEvent> {
-        static int MASK = 0;
+    public static class RelationshipWriteHandler implements EventHandler<RecordEvent> {
         private long counter;
-        private final int pos;
+        private final RelationshipWriter relationshipWriter;
 
-        public RelationshipRecordCreator(int pos) {
-            this.pos = pos;
+        public RelationshipWriteHandler(RelationshipWriter relationshipWriter) {
+            this.relationshipWriter = relationshipWriter;
         }
 
         @Override
         public void onEvent(RecordEvent event, long sequence, boolean endOfBatch) throws Exception {
-            if ((sequence & MASK)!=pos) return;
-
             if (Record.NO_NEXT_RELATIONSHIP.is(event.nextRel)) return;
-            int index=0;
+            relationshipWriter.start(event.maxRelationshipId);
+
             int count = event.relationshipCount;
             int followingNextRelationshipId =
                     event.outgoingRelationshipsToUpdate!=null ? event.outgoingRelationshipsToUpdate[0] :
@@ -496,8 +500,9 @@ public class DisruptorTest {
             long prevId = Record.NO_PREV_RELATIONSHIP.intValue();
             for (int i = 0; i < count; i++) {
                 long nextId = i+1 < count ? event.relationships[i + 1].id : followingNextRelationshipId;
-                event.relationshipRecords[index++] = createRecord(event.id, event.relationships[i], prevId, nextId);
-                prevId = event.relationships[i].id;
+                Rel rel = event.relationships[i];
+                relationshipWriter.create(event, rel, prevId, nextId);
+                prevId = rel.id;
                 counter++;
             }
 
@@ -505,167 +510,34 @@ public class DisruptorTest {
                     event.incomingRelationshipsToUpdate!=null ? event.incomingRelationshipsToUpdate[0] :
                                                                 Record.NO_NEXT_RELATIONSHIP.intValue();
 
-            index = createUpdateRecords(event,index, event.outgoingRelationshipsToUpdate, prevId, followingNextRelationshipId,true);
-
-            prevId = event.relationshipRecords[index-1].getId();
+            prevId = createUpdateRecords(event.outgoingRelationshipsToUpdate, prevId, followingNextRelationshipId,true);
 
             followingNextRelationshipId = Record.NO_NEXT_RELATIONSHIP.intValue();
 
-            index = createUpdateRecords(event,index, event.incomingRelationshipsToUpdate, prevId, followingNextRelationshipId, false);
+            createUpdateRecords(event.incomingRelationshipsToUpdate, prevId, followingNextRelationshipId, false);
 
-
-/*
-            if (log.isDebugEnabled()) {
-                StringBuilder sb=new StringBuilder("Creating rel-chain for node "+event.id+" ");
-                for (int i=0;i<index;i++) {
-                    sb.append("\t").append(formatRecord(event.relationshipRecords[i])).append("\n");
-                }
-                if (event.outgoingRelationshipsToUpdate!=null)
-                    sb.append("\tOutgoing").append(Arrays.toString(event.outgoingRelationshipsToUpdate)).append("\n");
-                if (event.incomingRelationshipsToUpdate!=null)
-                    sb.append("\tIncoming").append(Arrays.toString(event.incomingRelationshipsToUpdate)).append("\n");
-                log.debug(sb.toString());
-            }
-*/
-            if (index<event.relationshipRecords.length) event.relationshipRecords[index]=null;
+            // if (endOfBatch) relationshipWriter.flush();
         }
 
-        private int createUpdateRecords(RecordEvent event, int index, int[] relIds, long prevId, int followingNextRelationshipId, boolean outgoing) {
-            if (relIds==null) return index;
+        private long createUpdateRecords(int[] relIds, long prevId, int followingNextRelationshipId, boolean outgoing) throws IOException {
+            if (relIds==null) return prevId;
             int count = IntIntMultiMap.size(relIds);
             for (int i = 0; i < count; i++) {
                 long nextId = i+1 < count ? relIds[i + 1] : followingNextRelationshipId;
-                event.relationshipRecords[index++] = createUpdateRecord(relIds[i], outgoing, prevId, nextId);
+                relationshipWriter.update(relIds[i], outgoing, prevId, nextId);
                 prevId = relIds[i];
                 counter++;
             }
-            return index;
-        }
-
-        private RelationshipRecord createUpdateRecord(long id, boolean outgoing, long prevId, long nextId) {
-            RelationshipRecord relRecord = new RelationshipRecord(id, -1, -1, -1 );
-            relRecord.setInUse(true);
-            // no setCreated
-            if (outgoing) {
-                relRecord.setFirstPrevRel(prevId);
-                relRecord.setFirstNextRel(nextId);
-            } else {
-                relRecord.setSecondPrevRel(prevId);
-                relRecord.setSecondNextRel(nextId);
-            }
-            return relRecord;
-        }
-
-
-        @Override
-        public String toString() {
-            return "rel-record-creator  " + counter;
-        }
-
-/*
-        private void connect( NodeRecord node, RelationshipRecord rel )
-            {
-                if ( node.getNextRel() != Record.NO_NEXT_RELATIONSHIP.intValue() )
-                {
-                    RelationshipRecord nextRel = relationshipStore.getRecord( node.getNextRel() );
-                    boolean changed = false;
-                    if ( nextRel.getFirstNode() == node.getId() )
-                    {
-                        nextRel.setFirstPrevRel( rel.getId() );
-                        changed = true;
-                    }
-                    if ( nextRel.getSecondNode() == node.getId() )
-                    {
-                        nextRel.setSecondPrevRel( rel.getId() );
-                        changed = true;
-                    }
-                    if ( !changed )
-                    {
-                        throw new InvalidRecordException( node + " dont match " + nextRel );
-                    }
-                    relationshipStore.updateRecord( nextRel );
-                }
-            }
-*/
-    }
-    public static class RecordValidator {
-        private void validateStartChain(RelationshipRecord record, RecordEvent event) {
-            if (Record.NO_NEXT_RELATIONSHIP.is(record.getFirstPrevRel())) {
-                validateStartChain(record, event, record.getFirstNode());
-            }
-            if (Record.NO_NEXT_RELATIONSHIP.is(record.getSecondPrevRel())) {
-                validateStartChain(record, event, record.getSecondNode());
-            }
-        }
-
-        private void validateStartChain(RelationshipRecord record, RecordEvent event, long nodeId) {
-            if (nodeId == event.id) {
-                if (event.nextRel != record.getId()) {
-                    invalidChainHead(record, event);
-                }
-            }
-        }
-
-        private void invalidChainHead(RelationshipRecord record, RecordEvent node) {
-            log.error(formatRecord(record));
-            log.error(formatNode(node));
-            throw new IllegalStateException("Relationship not first in chain of start node");
-        }
-    }
-
-    public static class RelationshipWriter implements EventHandler<RecordEvent> {
-        long counter = 0;
-        private final RelationshipStore relationshipStore;
-        private RecordValidator validator;
-
-        public RelationshipWriter(RelationshipStore relationshipStore, RecordValidator validator) {
-            this.relationshipStore = relationshipStore;
-            this.validator = validator;
-        }
-        // create chain of outgoing relationships
-        // todo add incoming relationships ??
-        // todo add secondPrev/Next-Rel-id's
-        public void onEvent(RecordEvent event, long sequence, boolean endOfBatch) throws Exception {
-            if (Record.NO_NEXT_RELATIONSHIP.is(event.nextRel)) return;
-            if (relationshipStore.getHighId() < event.maxRelationshipId) relationshipStore.setHighId(event.maxRelationshipId +1);
-            int count = event.relationshipRecords.length;
-            for (int i = 0; i < count; i++) {
-                RelationshipRecord record = event.relationshipRecords[i];
-                if (record==null) break;
-                try {
-                if (record.isCreated()) {
-                    // print(record);
-                    validator.validateStartChain(record, event);
-                    relationshipStore.updateRecord(record);
-                }
-                else {
-                    // TODO write the 2 pointers directly
-                    RelationshipRecord loadedRecord = relationshipStore.getRecord(record.getId());
-                    // print(loadedRecord);
-                    if (!Record.NO_PREV_RELATIONSHIP.is(record.getFirstPrevRel())) loadedRecord.setFirstPrevRel(record.getFirstPrevRel());
-                    if (!Record.NO_NEXT_RELATIONSHIP.is(record.getFirstNextRel())) loadedRecord.setFirstNextRel(record.getFirstNextRel());
-                    if (!Record.NO_PREV_RELATIONSHIP.is(record.getSecondPrevRel())) loadedRecord.setSecondPrevRel(record.getSecondPrevRel());
-                    if (!Record.NO_NEXT_RELATIONSHIP.is(record.getSecondNextRel())) loadedRecord.setSecondNextRel(record.getSecondNextRel());
-                    validator.validateStartChain(loadedRecord, event);
-                    relationshipStore.updateRecord(loadedRecord);
-                }
-                } catch(Exception e) {
-                    log.error("Error updating relationship-record",e);
-                }
-                counter++;
-            }
-            if (endOfBatch) relationshipStore.flushAll();
+            return prevId;
         }
 
         @Override
         public String toString() {
-            return "rel-record-writer  " + counter;
+            return "rel-record-writer  " + counter + " "+relationshipWriter;
         }
-
-        public void close() {
-            relationshipStore.flushAll();
+        public void close() throws IOException {
+            relationshipWriter.close();
         }
-
     }
 
     private static void printRelationship(RelationshipRecord record) {
@@ -712,9 +584,143 @@ public class DisruptorTest {
         }
 
     }
+    public static class RelationshipFileWriter implements RelationshipWriter {
+        public static final int CAPACITY = (1024 ^ 2);
+        FileOutputStream os;
+        int eob=0;
+        private final FileChannel channel;
+        private final ByteBuffer buffer;
+        private int limit;
+        private long written;
+        private ByteBuffer updateBuffer;
+        private long updated;
+
+        public RelationshipFileWriter(File file) throws IOException {
+            os = new FileOutputStream(file);
+            channel = os.getChannel();
+            channel.position(0);
+            buffer = ByteBuffer.allocateDirect(CAPACITY);
+            updateBuffer = ByteBuffer.allocateDirect(8); // 2x prev/next pointer
+            limit = ((int)(CAPACITY/RelationshipStore.RECORD_SIZE))*RelationshipStore.RECORD_SIZE;
+            buffer.limit(limit);
+        }
+
+        @Override
+        public void create(RecordEvent event, Rel rel, long prevId, long nextId) throws IOException {
+            long from = event.id;
+            long id = rel.id;
+
+            long firstNode, secondNode, firstNextRel, firstPrevRel, secondNextRel, secondPrevRel;
+
+            if (rel.outgoing()) {
+                firstNode = from;
+                secondNode = rel.other();
+                firstPrevRel = prevId;
+                firstNextRel = nextId;
+                secondPrevRel = Record.NO_PREV_RELATIONSHIP.intValue();
+                secondNextRel = Record.NO_NEXT_RELATIONSHIP.intValue();
+            } else {
+                firstNode = rel.other();
+                secondNode = from;
+                firstPrevRel = Record.NO_PREV_RELATIONSHIP.intValue();
+                firstNextRel = Record.NO_NEXT_RELATIONSHIP.intValue();
+                secondPrevRel = prevId;
+                secondNextRel = nextId;
+            }
+
+            short firstNodeMod = (short)((firstNode & 0x700000000L) >> 31);
+            long secondNodeMod = (secondNode & 0x700000000L) >> 4;
+            long firstPrevRelMod = firstPrevRel == Record.NO_NEXT_RELATIONSHIP.intValue() ? 0 : (firstPrevRel & 0x700000000L) >> 7;
+            long firstNextRelMod = firstNextRel == Record.NO_NEXT_RELATIONSHIP.intValue() ? 0 : (firstNextRel & 0x700000000L) >> 10;
+            long secondPrevRelMod = secondPrevRel == Record.NO_NEXT_RELATIONSHIP.intValue() ? 0 : (secondPrevRel & 0x700000000L) >> 13;
+            long secondNextRelMod = secondNextRel == Record.NO_NEXT_RELATIONSHIP.intValue() ? 0 : (secondNextRel & 0x700000000L) >> 16;
+
+            long nextProp = rel.firstPropertyId;
+            long nextPropMod = nextProp == Record.NO_NEXT_PROPERTY.intValue() ? 0 : (nextProp & 0xF00000000L) >> 28;
+
+            // [    ,   x] in use flag
+            // [    ,xxx ] first node high order bits
+            // [xxxx,    ] next prop high order bits
+            short inUseUnsignedByte = (short)(Record.IN_USE.byteValue() | firstNodeMod | nextPropMod);
+
+            // [ xxx,    ][    ,    ][    ,    ][    ,    ] second node high order bits,     0x70000000
+            // [    ,xxx ][    ,    ][    ,    ][    ,    ] first prev rel high order bits,  0xE000000
+            // [    ,   x][xx  ,    ][    ,    ][    ,    ] first next rel high order bits,  0x1C00000
+            // [    ,    ][  xx,x   ][    ,    ][    ,    ] second prev rel high order bits, 0x380000
+            // [    ,    ][    , xxx][    ,    ][    ,    ] second next rel high order bits, 0x70000
+            // [    ,    ][    ,    ][xxxx,xxxx][xxxx,xxxx] type
+            int typeInt = (int)(rel.type | secondNodeMod | firstPrevRelMod | firstNextRelMod | secondPrevRelMod | secondNextRelMod);
+
+            buffer.put( (byte)inUseUnsignedByte ).putInt( (int) firstNode ).putInt((int) secondNode)
+                  .putInt(typeInt).putInt( (int) firstPrevRel ).putInt( (int) firstNextRel )
+                  .putInt((int) secondPrevRel).putInt( (int) secondNextRel ).putInt( (int) nextProp );
+
+            flushBuffer(false);
+        }
+
+        private void flushBuffer(boolean force) throws IOException {
+            if (buffer.position()==0) return;
+            if (force || buffer.position()==buffer.limit()) {
+                long position = channel.position();
+                buffer.limit(buffer.position());
+                buffer.position(0);
+                int wrote = channel.write(buffer);
+                written += wrote;
+                System.out.println("RelStore: at "+ position +" wrote "+wrote+" force "+force);
+                buffer.clear().limit(limit);
+            }
+        }
+
+        /**
+         * only works for prevId & nextId <= MAXINT
+         */
+        @Override
+        public void update(long id, boolean outgoing, long prevId, long nextId) throws IOException {
+            flushBuffer(true);
+            long position = id * RelationshipStore.RECORD_SIZE + 1 + 4 + 4 + 4; // inUse, firstNode, secondNode, relType
+
+            if (!outgoing) {
+                position += 4 + 4;
+            }
+            long oldPos = channel.position();
+            if (oldPos != position) {
+                channel.position(position);
+            }
+
+            updateBuffer.position(0);
+            updateBuffer.putInt((int) prevId).putInt( (int) nextId ).position(0);
+
+            int wrote = channel.write(updateBuffer);
+            updated += wrote;
+            System.out.println("RelStore: at "+ position +" oldPos " +oldPos+" update "+wrote+" id "+id+" outgoing "+outgoing+" prevId "+prevId+" nextId "+nextId);
+            channel.position(oldPos);
+        }
+
+        @Override
+        public void close() throws IOException {
+            flush();
+            channel.close();
+            os.close();
+        }
+
+        @Override
+        public void flush() throws IOException {
+            flushBuffer(true);
+            eob++;
+            channel.force(true);
+        }
+
+        @Override
+        public void start(long maxRelationshipId) {
+        }
+        @Override
+        public String toString() {
+            return "RelationshipFileWriter: batches "+eob+" written "+written+" updated "+updated;
+        }
+    }
 
     public static class NodeWriter implements EventHandler<RecordEvent> {
-        public static final int CAPACITY = (1024 ^ 2)*16;
+        public static final int CAPACITY = (1024 ^ 2);
         FileOutputStream os;
         int eob=0;
         private final FileChannel channel;
@@ -722,9 +728,10 @@ public class DisruptorTest {
         private int limit;
         private long written;
 
-        public NodeWriter(File file) throws FileNotFoundException {
+        public NodeWriter(File file) throws IOException {
             os = new FileOutputStream(file);
             channel = os.getChannel();
+            channel.position(0);
             buffer = ByteBuffer.allocateDirect(CAPACITY);
             limit = ((int)(CAPACITY/9))*9;
             buffer.limit(limit);
@@ -734,11 +741,14 @@ public class DisruptorTest {
         public void onEvent(RecordEvent event, long sequence, boolean endOfBatch) throws Exception {
             writeRecord(event);
             if (endOfBatch) {
-                channel.force(true);
-                eob++;
-                //System.out.print(".");
-                //if (eob % 100 == 0) System.out.println();
+                flush();
             }
+        }
+
+        private void flush() throws IOException {
+            flushBuffer(true);
+            channel.force(true);
+            eob++;
         }
 
         @Override
@@ -760,16 +770,24 @@ public class DisruptorTest {
             short inUseUnsignedByte = Record.IN_USE.byteValue();
             inUseUnsignedByte = (short) (inUseUnsignedByte | relModifier | propModifier);
             buffer.put((byte)inUseUnsignedByte).putInt((int)nextRel).putInt((int) nextProp);
-            if (buffer.position()==buffer.limit()) {
+            flushBuffer(false);
+        }
+
+        private void flushBuffer(boolean force) throws IOException {
+            if (buffer.position()==0) return;
+            if (force || buffer.position()==buffer.limit()) {
+                buffer.limit(buffer.position());
                 buffer.position(0);
-                written += channel.write(buffer);
-                //channel.force(true);
+                // long position = channel.position();
+                int wrote = channel.write(buffer);
+                written += wrote;
+                // System.out.println("NodeStore: at "+ position +" wrote "+wrote);
                 buffer.clear().limit(limit);
             }
         }
 
         public void close() throws IOException {
-            channel.force(true);
+            flush();
             channel.close();
             os.close();
         }
@@ -787,14 +805,13 @@ public class DisruptorTest {
     }
 
     public static class PropertyHolder {
-        long id;
+        volatile long id;
+        volatile long firstPropertyId = Record.NO_NEXT_PROPERTY.intValue();
 
-        int propertyCount;
-        Property[] properties;
-        //long q1,q2,q3,q4,q5,q6,q7;
-        PropertyRecord[] propertyRecords;
-        long firstPropertyId = Record.NO_NEXT_PROPERTY.intValue();
-        long q1,q2,q3,q4,q5,q6,q7;
+        volatile int propertyCount;
+        final Property[] properties;
+        final PropertyRecord[] propertyRecords;
+
         public PropertyHolder(int propertyCount) {
             this.properties = new Property[propertyCount];
             for (int i = 0; i < properties.length; i++) {
@@ -817,19 +834,17 @@ public class DisruptorTest {
         volatile long nextRel = Record.NO_NEXT_RELATIONSHIP.intValue();
         //long o1,o2,o3,o4,o5,o6,o7;
 
-        Rel[] relationships;
+        final Rel[] relationships;
         volatile int relationshipCount;
 
         volatile long lastPropertyId;
         volatile long maxRelationshipId;
-        RelationshipRecord[] relationshipRecords;
         volatile int[] outgoingRelationshipsToUpdate;
         volatile int[] incomingRelationshipsToUpdate;
 
         public RecordEvent(int propertyCount, int relCount, int relPropertyCount) {
             super(propertyCount);
             this.relationships=new Rel[relCount];
-            this.relationshipRecords=new RelationshipRecord[relCount*3]; // potentially as many incoming records
             for (int i = 0; i < relCount; i++) {
                 relationships[i]=new Rel(relPropertyCount);
             }
