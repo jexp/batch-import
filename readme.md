@@ -22,7 +22,7 @@ It uses the above dependency setup of disruptor handlers to execute the differen
 
 Execution:
 
-   mvn exec:java -Dexec.mainClass=org.neo4j.batchimport.DisruptorTest
+   MAVEN_OPTS="-Xmx5G -Xms5G -server -d64 -XX:NewRatio=5"  mvn exec:java -Dexec.mainClass=org.neo4j.batchimport.DisruptorTest
 
 current limitations, constraints:
 
