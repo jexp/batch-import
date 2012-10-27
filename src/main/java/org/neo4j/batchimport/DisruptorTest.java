@@ -40,7 +40,7 @@ import static org.neo4j.helpers.collection.MapUtil.stringMap;
 
 public class DisruptorTest {
     public static final String STORE_DIR = "target/test-db2";
-    public static final int NODES_TO_CREATE = 1 *1000;
+    public static final int NODES_TO_CREATE = 1 *1000 *1000;
     private static final boolean RUN_CHECK = false;
 
     @SuppressWarnings("unchecked")

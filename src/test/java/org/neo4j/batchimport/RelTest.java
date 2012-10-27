@@ -2,6 +2,7 @@ package org.neo4j.batchimport;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.neo4j.batchimport.structs.Relationship;
 
 import static org.junit.Assert.assertEquals;
 
@@ -12,11 +13,11 @@ public class RelTest {
     public static final int NODE_ZERO = 0;
     public static final int TYPE = 11;
     public static final int NODE_ONE = 1;
-    private DisruptorTest.Rel rel;
+    private Relationship rel;
 
     @Before
     public void setUp() throws Exception {
-        rel = new DisruptorTest.Rel(0);
+        rel = new Relationship(0);
     }
 
     @Test
