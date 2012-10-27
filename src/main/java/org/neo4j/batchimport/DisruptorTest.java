@@ -1,5 +1,6 @@
 package org.neo4j.batchimport;
 
+import org.apache.log4j.Logger;
 import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.consistency.ConsistencyCheckTool;
 import org.neo4j.kernel.impl.util.FileUtils;
@@ -39,6 +40,9 @@ import static org.neo4j.helpers.collection.MapUtil.stringMap;
 // sorted by outgoing from node
 
 public class DisruptorTest {
+
+    private final static Logger log = Logger.getLogger(DisruptorBatchInserter.class);
+
     public static final String STORE_DIR = "target/test-db2";
     public static final int NODES_TO_CREATE = 1 *1000 *1000;
     private static final boolean RUN_CHECK = false;
@@ -55,7 +59,7 @@ public class DisruptorTest {
             inserter.shutdown();
         }
         time = System.currentTimeMillis() - time;
-        System.out.println(NODES_TO_CREATE + " took " + time + " ms");
+        log.info(NODES_TO_CREATE + " took " + time + " ms");
         inserter.report();
 
         if (RUN_CHECK) ConsistencyCheckTool.main(new String[]{STORE_DIR});
@@ -89,7 +93,6 @@ public class DisruptorTest {
 
         static {
             for (int i = 0; i < TestNodeStructFactory.RELS_PER_NODE; i++) TestNodeStructFactory.REL_OFFSETS[i] = 1 << 2 * i;
-            System.out.println(Arrays.toString(TestNodeStructFactory.REL_OFFSETS));
         }
 
         @Override

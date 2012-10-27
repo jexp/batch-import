@@ -92,12 +92,9 @@ public class RelationshipFileWriter implements RelationshipWriter {
     private void flushBuffer(boolean force) throws IOException {
         if (buffer.position()==0) return;
         if (force || buffer.position()==buffer.limit()) {
-            long position = channel.position();
             buffer.limit(buffer.position());
             buffer.position(0);
-            int wrote = channel.write(buffer);
-            written += wrote;
-            System.out.println("RelStore: at "+ position +" wrote "+wrote+" force "+force);
+            written += channel.write(buffer);
             buffer.clear().limit(limit);
         }
     }
@@ -121,9 +118,7 @@ public class RelationshipFileWriter implements RelationshipWriter {
         updateBuffer.position(0);
         updateBuffer.putInt((int) prevId).putInt( (int) nextId ).position(0);
 
-        int wrote = channel.write(updateBuffer);
-        updated += wrote;
-        System.out.println("RelStore: at "+ position +" oldPos " +oldPos+" update "+wrote+" id "+id+" outgoing "+outgoing+" prevId "+prevId+" nextId "+nextId);
+        updated += channel.write(updateBuffer);
         channel.position(oldPos);
     }
 

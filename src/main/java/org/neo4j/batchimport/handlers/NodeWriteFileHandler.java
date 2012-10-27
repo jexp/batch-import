@@ -73,10 +73,7 @@ public class NodeWriteFileHandler implements EventHandler<NodeStruct> {
         if (force || buffer.position()==buffer.limit()) {
             buffer.limit(buffer.position());
             buffer.position(0);
-            // long position = channel.position();
-            int wrote = channel.write(buffer);
-            written += wrote;
-            // System.out.println("NodeStore: at "+ position +" wrote "+wrote);
+            written += channel.write(buffer);
             buffer.clear().limit(limit);
         }
     }
