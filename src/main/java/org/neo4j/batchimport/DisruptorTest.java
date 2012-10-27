@@ -63,8 +63,12 @@ public class DisruptorTest {
     public static final Long VALUE = 42L;
 
     private final static int RING_SIZE = 1 <<  18;
-    public static final int ITERATIONS = 40 * 1000*1000;
-
+    public static final int ITERATIONS = 1 * 1000*1000;
+    public static final int[] REL_OFFSETS=new int[RELS_PER_NODE];
+    static {
+        for (int i = 0; i < RELS_PER_NODE; i++) REL_OFFSETS[i] = 1 << 2*i;
+        System.out.println(Arrays.toString(REL_OFFSETS));
+    }
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         FileUtils.deleteRecursively(new File(STORE_DIR));
@@ -125,7 +129,7 @@ public class DisruptorTest {
                 recordEvent.addProperty(age, VALUE);
                 // now only "local" relationships close to the original node-id
                 for (int r=0;r<RELS_PER_NODE; r++) {
-                    int target = i + r + 1;
+                    int target = i + REL_OFFSETS[r];
                     if (target >= ITERATIONS) continue;
                     recordEvent.addRel(target, outgoing, type).addProperty(weight, WEIGHT);
                     outgoing = !outgoing;
