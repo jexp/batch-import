@@ -62,8 +62,8 @@ public class DisruptorTest {
     public static final Float WEIGHT = 10F;
     public static final Long VALUE = 42L;
 
-    private final static int RING_SIZE = 1 << 18; // 22
-    public static final int ITERATIONS = 1000*1000;
+    private final static int RING_SIZE = 1 <<  18;
+    public static final int ITERATIONS = 40 * 1000*1000;
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
@@ -92,7 +92,7 @@ public class DisruptorTest {
 
         Disruptor<RecordEvent> incomingEventDisruptor =
                 new Disruptor<RecordEvent>(new Factory(), executor, new SingleThreadedClaimStrategy(RING_SIZE), new YieldingWaitStrategy());
-        IdSettingEventHandler idSettingEventHandler = new IdSettingEventHandler();
+        // IdSettingEventHandler idSettingEventHandler = new IdSettingEventHandler();
 
         PropertyMappingEventHandler[] propertyMappingHandlers = new PropertyMappingEventHandler[PropertyMappingEventHandler.MASK + 1];
         for (int i = 0; i < propertyMappingHandlers.length; i++) {
@@ -106,8 +106,9 @@ public class DisruptorTest {
         RelationshipWriteHandler relationshipWriter = new RelationshipWriteHandler(new RelationshipRecordWriter(neoStore.getRelationshipStore()));
         //RelationshipWriteHandler relationshipWriter = new RelationshipWriteHandler(new RelationshipFileWriter(new File(neoStore.getRelationshipStore().getStorageFileName())));
         incomingEventDisruptor.
-                handleEventsWith(propertyMappingHandlers[0], propertyMappingHandlers[1], idSettingEventHandler).
-                then(new PropertyRecordEventHandler(), relIdSettingEventHandler).
+                //handleEventsWith(propertyMappingHandlers[0], propertyMappingHandlers[1], idSettingEventHandler).
+                handleEventsWith(propertyMappingHandlers[0],propertyMappingHandlers[1]).
+                then(new PropertyRecordEventHandler(),relIdSettingEventHandler).
                 then(nodeWriter, relationshipWriter, propertyWriter); //
         RingBuffer<RecordEvent> ringBuffer = incomingEventDisruptor.start();
         long time = System.currentTimeMillis();
@@ -144,14 +145,13 @@ public class DisruptorTest {
         System.out.println(ITERATIONS + " took " + time + " ms");
         System.out.println("mapped " + Arrays.deepToString(propertyMappingHandlers));
 
-        System.out.println("ids " + idSettingEventHandler);
         System.out.println("relIds " + relIdSettingEventHandler);
 
         System.out.println("wrote nodes " + nodeWriter);
         System.out.println("wrote rels " + relationshipWriter);
         System.out.println("wrote props " + propertyWriter);
 
-        // if (true) ConsistencyCheckTool.main(new String[]{STORE_DIR});
+        if (false) ConsistencyCheckTool.main(new String[]{STORE_DIR});
     }
 
 
@@ -159,19 +159,6 @@ public class DisruptorTest {
         @Override
         public RecordEvent newInstance() {
             return new RecordEvent(NODE_PROPERTY_COUNT,RELS_PER_NODE, REL_PROPERTY_COUNT);
-        }
-    }
-
-    public static class IdSettingEventHandler implements EventHandler<RecordEvent> {
-        volatile long nodeId = 0;
-
-        public void onEvent(RecordEvent event, long sequence, boolean endOfBatch) throws Exception {
-            event.id = nodeId++;
-        }
-
-        @Override
-        public String toString() {
-            return "nodeId: " + nodeId;
         }
     }
 
@@ -186,33 +173,32 @@ public class DisruptorTest {
         //final ReverseRelationshipMap futureModeRelIdQueueOutgoing = new ConcurrentReverseRelationshipMap(RELS_PER_NODE);
         //final ReverseRelationshipMap futureModeRelIdQueueIncoming = new ConcurrentReverseRelationshipMap(RELS_PER_NODE);
 
-        public void onEvent(RecordEvent event, long sequence, boolean endOfBatch) throws Exception {
+        public void onEvent(RecordEvent event, long nodeId, boolean endOfBatch) throws Exception {
             for (int i = 0; i < event.relationshipCount; i++) {
                 Rel relationship = event.relationships[i];
-                long id = relId++;
-                relationship.id = id;
-                storeFutureRelId(event, relationship,id);
+                long relId = this.relId++;
+                relationship.id = relId;
+                storeFutureRelId(nodeId, relationship,relId);
             }
 
-            event.outgoingRelationshipsToUpdate = futureRelIds(event, futureModeRelIdQueueOutgoing);
-            event.incomingRelationshipsToUpdate = futureRelIds(event, futureModeRelIdQueueIncoming);
+            event.outgoingRelationshipsToUpdate = futureRelIds(nodeId, futureModeRelIdQueueOutgoing);
+            event.incomingRelationshipsToUpdate = futureRelIds(nodeId, futureModeRelIdQueueIncoming);
             event.nextRel = firstRelationshipId(event);
             event.maxRelationshipId = maxRelationshipId(event);
         }
 
-        private void storeFutureRelId(RecordEvent event, Rel relationship, long relId) {
+        private void storeFutureRelId(long nodeId, Rel relationship, long relId) {
             long other = relationship.other();
-            if (other <= event.id) return;
+            if (other <= nodeId) return;
             if (relationship.outgoing()) {
                 futureModeRelIdQueueIncoming.add((int) other, (int) relId); // todo long vs. int
             } else {
                 futureModeRelIdQueueOutgoing.add((int) other, (int) relId); // todo long vs. int
             }
-            if (log.isDebugEnabled()) log.debug(event.id+" Adding: "+(int)other+" rel: "+(int)relId+" incoming "+relationship.outgoing());
         }
 
-        private int[] futureRelIds(RecordEvent event, ReverseRelationshipMap futureRelIds) {
-            int[] relIds = futureRelIds.remove((int) event.id);
+        private int[] futureRelIds(long nodeId, ReverseRelationshipMap futureRelIds) {
+            int[] relIds = futureRelIds.remove((int) nodeId);
             if (relIds == null) return null;
             return relIds;
         }
@@ -415,12 +401,19 @@ public class DisruptorTest {
             this.nodeStore = nodeStore;
         }
 
-        public void onEvent(RecordEvent event, long sequence, boolean endOfBatch) throws Exception {
+        public void onEvent(RecordEvent event, long id, boolean endOfBatch) throws Exception {
             counter++;
-            if (nodeStore.getHighId() < event.id) nodeStore.setHighId(event.id+1);
+            if (nodeStore.getHighId() < id) nodeStore.setHighId(id+1);
             //printNode(event);
-            nodeStore.updateRecord(event.record());
-            // if (endOfBatch) nodeStore.flushAll();
+            nodeStore.updateRecord(createRecord(event, id));
+            if (endOfBatch) nodeStore.flushAll();
+        }
+
+        private NodeRecord createRecord(RecordEvent event, long id) {
+            NodeRecord record = new NodeRecord(id, event.nextRel, event.firstPropertyId);
+            record.setInUse(true);
+            record.setCreated();
+            return record;
         }
 
         @Override
@@ -434,7 +427,7 @@ public class DisruptorTest {
     }
 
     interface RelationshipWriter {
-        void create(RecordEvent event, Rel rel, long prevId, long nextId) throws IOException;
+        void create(long nodeId, RecordEvent event, Rel rel, long prevId, long nextId) throws IOException;
         void update(long relId, boolean outgoing, long prevId, long nextId) throws IOException;
         void flush() throws IOException;
 
@@ -451,8 +444,8 @@ public class DisruptorTest {
         }
 
         @Override
-        public void create(RecordEvent event, Rel rel, long prevId, long nextId) {
-            relationshipStore.updateRecord(createRecord(event.id,rel,prevId,nextId));
+        public void create(long nodeId, RecordEvent event, Rel rel, long prevId, long nextId) {
+            relationshipStore.updateRecord(createRecord(nodeId,rel,prevId,nextId));
         }
 
         @Override
@@ -511,7 +504,7 @@ public class DisruptorTest {
         }
 
         @Override
-        public void onEvent(RecordEvent event, long sequence, boolean endOfBatch) throws Exception {
+        public void onEvent(RecordEvent event, long nodeId, boolean endOfBatch) throws Exception {
             if (Record.NO_NEXT_RELATIONSHIP.is(event.nextRel)) return;
             relationshipWriter.start(event.maxRelationshipId);
 
@@ -525,7 +518,7 @@ public class DisruptorTest {
             for (int i = 0; i < count; i++) {
                 long nextId = i+1 < count ? event.relationships[i + 1].id : followingNextRelationshipId;
                 Rel rel = event.relationships[i];
-                relationshipWriter.create(event, rel, prevId, nextId);
+                relationshipWriter.create(nodeId,event, rel, prevId, nextId);
                 prevId = rel.id;
                 counter++;
             }
@@ -540,7 +533,7 @@ public class DisruptorTest {
 
             createUpdateRecords(event.incomingRelationshipsToUpdate, prevId, followingNextRelationshipId, false);
 
-            // if (endOfBatch) relationshipWriter.flush();
+           if (endOfBatch) relationshipWriter.flush();
         }
 
         private long createUpdateRecords(int[] relIds, long prevId, int followingNextRelationshipId, boolean outgoing) throws IOException {
@@ -607,6 +600,10 @@ public class DisruptorTest {
             return "PropertyWritingEventHandler " + counter;
         }
 
+        public void close() {
+            propStore.flushAll();
+        }
+
     }
     public static class RelationshipFileWriter implements RelationshipWriter {
         public static final int CAPACITY = (1024 ^ 2);
@@ -630,8 +627,8 @@ public class DisruptorTest {
         }
 
         @Override
-        public void create(RecordEvent event, Rel rel, long prevId, long nextId) throws IOException {
-            long from = event.id;
+        public void create(long nodeId, RecordEvent event, Rel rel, long prevId, long nextId) throws IOException {
+            long from = nodeId;
             long id = rel.id;
 
             long firstNode, secondNode, firstNextRel, firstPrevRel, secondNextRel, secondPrevRel;
@@ -872,13 +869,6 @@ public class DisruptorTest {
             for (int i = 0; i < relCount; i++) {
                 relationships[i]=new Rel(relPropertyCount);
             }
-        }
-
-        NodeRecord record() {
-            NodeRecord record = new NodeRecord(id, nextRel, firstPropertyId);
-            record.setInUse(true);
-            record.setCreated();
-            return record;
         }
 
         void init() {
