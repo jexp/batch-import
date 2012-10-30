@@ -70,8 +70,8 @@ public class DisruptorTest {
         //"dump_configuration", "true",
         "cache_type", "none",
         "neostore.nodestore.db.mapped_memory", "50M",
-        "neostore.propertystore.db.mapped_memory", "200M",
-        "neostore.relationshipstore.db.mapped_memory", "200M"
+        "neostore.propertystore.db.mapped_memory", "1G",
+        "neostore.relationshipstore.db.mapped_memory", "500M"
 );
     }
 
@@ -125,6 +125,11 @@ public class DisruptorTest {
                 nodeStruct.addRel(target, outgoing, type).addProperty(weight, WEIGHT);
                 outgoing = !outgoing;
             }
+        }
+
+        @Override
+        public int getRelsPerNode() {
+            return RELS_PER_NODE;
         }
     }
 }

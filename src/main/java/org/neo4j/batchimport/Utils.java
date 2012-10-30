@@ -12,11 +12,20 @@ import org.neo4j.kernel.impl.nioneo.store.RelationshipRecord;
 public class Utils {
     private final static Logger log = Logger.getLogger(Utils.class);
 
-    public static int size(int[] ints) {
-        if (ints==null) return 0;
-        int count = ints.length;
+    public static int size(int[] ids) {
+        if (ids==null) return 0;
+        int count = ids.length;
         for (int i=count-1;i>=0;i--) {
-            if (ints[i]!=-1) return i+1;
+            if (ids[i]!=-1) return i+1;
+        }
+        return count;
+    }
+
+    public static int size(long[] ids) {
+        if (ids==null) return 0;
+        int count = ids.length;
+        for (int i=count-1;i>=0;i--) {
+            if (ids[i]!=-1) return i+1;
         }
         return count;
     }

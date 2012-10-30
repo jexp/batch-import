@@ -16,8 +16,8 @@ public class NodeStruct extends PropertyHolder {
 
     public volatile long lastPropertyId;
     public volatile long maxRelationshipId;
-    public volatile int[] outgoingRelationshipsToUpdate;
-    public volatile int[] incomingRelationshipsToUpdate;
+    public volatile long[] outgoingRelationshipsToUpdate;
+    public volatile long[] incomingRelationshipsToUpdate;
 
     public NodeStruct(int propertyCount, int relCount, int relPropertyCount) {
         super(propertyCount);

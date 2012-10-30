@@ -1,7 +1,9 @@
 package org.neo4j.batchimport.handlers;
 
 import com.lmax.disruptor.EventHandler;
-import org.neo4j.batchimport.collections.PrimitiveReverseRelationshipMap;
+import org.neo4j.batchimport.NodeStructFactory;
+import org.neo4j.batchimport.collections.ConcurrentLongReverseRelationshipMap;
+import org.neo4j.batchimport.collections.PrimitiveIntReverseRelationshipMap;
 import org.neo4j.batchimport.Utils;
 import org.neo4j.batchimport.collections.ReverseRelationshipMap;
 import org.neo4j.batchimport.structs.NodeStruct;
@@ -15,8 +17,15 @@ import org.neo4j.kernel.impl.nioneo.store.Record;
 public class RelationshipIdHandler implements EventHandler<NodeStruct> {
     volatile long relId = 0;
     // store reverse node-id to rel-id for future updates of relationship-records
-    final ReverseRelationshipMap futureModeRelIdQueueOutgoing = new PrimitiveReverseRelationshipMap();
-    final ReverseRelationshipMap futureModeRelIdQueueIncoming = new PrimitiveReverseRelationshipMap();
+    final ReverseRelationshipMap futureModeRelIdQueueOutgoing;
+    final ReverseRelationshipMap futureModeRelIdQueueIncoming;
+
+    public RelationshipIdHandler(int relsPerNode) {
+        futureModeRelIdQueueOutgoing = new ConcurrentLongReverseRelationshipMap(relsPerNode);
+        futureModeRelIdQueueIncoming = new ConcurrentLongReverseRelationshipMap(relsPerNode);
+    }
+//    final ReverseRelationshipMap futureModeRelIdQueueOutgoing = new PrimitiveIntReverseRelationshipMap();
+//    final ReverseRelationshipMap futureModeRelIdQueueIncoming = new PrimitiveIntReverseRelationshipMap();
     //final ReverseRelationshipMap futureModeRelIdQueueOutgoing = new ConcurrentReverseRelationshipMap(RELS_PER_NODE);
     //final ReverseRelationshipMap futureModeRelIdQueueIncoming = new ConcurrentReverseRelationshipMap(RELS_PER_NODE);
 
@@ -38,14 +47,14 @@ public class RelationshipIdHandler implements EventHandler<NodeStruct> {
         long other = relationship.other();
         if (other <= nodeId) return;
         if (relationship.outgoing()) {
-            futureModeRelIdQueueIncoming.add((int) other, (int) relId); // todo long vs. int
+            futureModeRelIdQueueIncoming.add(other, relId);
         } else {
-            futureModeRelIdQueueOutgoing.add((int) other, (int) relId); // todo long vs. int
+            futureModeRelIdQueueOutgoing.add(other, relId);
         }
     }
 
-    private int[] futureRelIds(long nodeId, ReverseRelationshipMap futureRelIds) {
-        int[] relIds = futureRelIds.remove((int) nodeId);
+    private long[] futureRelIds(long nodeId, ReverseRelationshipMap futureRelIds) {
+        long[] relIds = futureRelIds.remove(nodeId);
         if (relIds == null) return null;
         return relIds;
     }

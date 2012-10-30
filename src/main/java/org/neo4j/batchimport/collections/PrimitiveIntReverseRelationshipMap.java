@@ -8,7 +8,7 @@ import edu.ucla.sspace.util.primitive.IntSet;
 * @author mh
 * @since 27.10.12
 */
-public class PrimitiveReverseRelationshipMap implements ReverseRelationshipMap {
+public class PrimitiveIntReverseRelationshipMap { // implements ReverseRelationshipMap {
     private final IntIntMultiMap inner=new IntIntHashMultiMap();
 
     public void add(int key, int value) {

@@ -14,6 +14,8 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
 
+import static org.neo4j.helpers.collection.MapUtil.map;
+
 public class Importer {
     public static final int NUM_TYPES = 10;
     enum RelTypes implements RelationshipType {
@@ -55,20 +57,23 @@ public class Importer {
             System.err.println("Usage java -jar batchperformance.jar db-dir #nodes #rels/node");
         }
         File graphDb = new File(args[0]);
-        int nodesCount = Integer.parseInt(args[1]);
-        int relsPerNode = Integer.parseInt(args[2]);
+        int nodesCount = Integer.parseInt(args[1]); // 40M
+        int relsPerNode = Integer.parseInt(args[2]); // 10
 
         if (graphDb.exists()) {
             FileUtils.deleteRecursively(graphDb);
         }
-        int[] targetNodeIds = createTargetNodeIds(nodesCount);
+        // int[] targetNodeIds = createTargetNodeIds(nodesCount);
+        int[] targetNodeOffsets = createTargetNodeIds(nodesCount);
+        long time=System.currentTimeMillis();
         Importer importer = new Importer(graphDb);
         try {
-            importer.createNodes(nodesCount);
-            importer.createRels(nodesCount, relsPerNode, targetNodeIds);
+            importer.createNodes(nodesCount,map("blocked",Boolean.TRUE,"age",42L));
+            importer.createRels(nodesCount, relsPerNode, targetNodeOffsets,map("weight",10F));
         } finally {
             importer.finish();
         }
+        System.out.println("Import of "+nodesCount+" nodes took "+(System.currentTimeMillis()-time)+" ms.");
     }
 
     private static int[] createTargetNodeIds(int nodesCount) {
@@ -80,30 +85,38 @@ public class Importer {
         return targetNodes;
     }
 
-    public void createRels(int nodesCount, int relsPerNode, int[] targetNodes) {
+    private static int[] createTargetNodeOffsets(int relsPerNode) {
+        int[] targetNodeOffsets = new int[relsPerNode];
+        for (int i = 0; i < relsPerNode; i++) {
+            targetNodeOffsets[i]=1 << 2 * i;
+        }
+        return targetNodeOffsets;
+    }
+
+    public void createRels(int nodesCount, int relsPerNode, int[] targetNodeOffsets, Map<String, Object> props) {
         Random rnd = new Random();
         RelTypes[] values = RelTypes.values();
 
         report.reset();
         for (int node = 0; node < nodesCount; node++) {
-            final int rels = rnd.nextInt(relsPerNode);
+            final int rels = relsPerNode; // rnd.nextInt(relsPerNode);
 
             for (int rel = rels; rel >= 0; rel--) {
                 // final long node1 = Math.abs(rnd.nextLong() % nodesCount);
                 // final long node2 = Math.abs(rnd.nextLong() % nodesCount);
                 // final long node2 = (node + rels +1) % nodesCount;
-                long node2 = targetNodes[node];
-                db.createRelationship(node, node2, values[rel % NUM_TYPES], Collections.EMPTY_MAP);
+                long node2 = (node + targetNodeOffsets[rel])  % nodesCount;
+                db.createRelationship(node, node2, RelTypes.ONE, props); // values[rel % NUM_TYPES]
                 report.dots();
             }
         }
         report.finishImport("Relationships");
     }
 
-    private void createNodes(long nodesCount) {
+    private void createNodes(long nodesCount, Map<String, Object> props) {
         report.reset();
         for (int node = 0; node < nodesCount; node++) {
-            db.createNode(Collections.EMPTY_MAP);
+            db.createNode(props);
             report.dots();
         }
         report.finishImport("Nodes");

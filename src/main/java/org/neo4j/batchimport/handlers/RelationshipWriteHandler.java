@@ -53,7 +53,7 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
        if (endOfBatch) relationshipWriter.flush();
     }
 
-    private long createUpdateRecords(int[] relIds, long prevId, long followingNextRelationshipId, boolean outgoing) throws IOException {
+    private long createUpdateRecords(long[] relIds, long prevId, long followingNextRelationshipId, boolean outgoing) throws IOException {
         if (relIds==null) return prevId;
         int count = Utils.size(relIds);
         for (int i = 0; i < count; i++) {

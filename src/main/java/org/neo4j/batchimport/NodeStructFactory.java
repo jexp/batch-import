@@ -14,4 +14,6 @@ public interface NodeStructFactory extends EventFactory<NodeStruct> {
     void init(BatchInserterImpl inserter);
 
     void fillStruct(long nodeId, NodeStruct nodeStruct);
+
+    int getRelsPerNode();
 }

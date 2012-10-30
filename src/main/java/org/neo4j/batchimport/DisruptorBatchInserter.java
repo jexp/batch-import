@@ -57,7 +57,7 @@ public class DisruptorBatchInserter {
 
         incomingEventDisruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(RING_SIZE), new YieldingWaitStrategy());
 
-        createHandlers(neoStore);
+        createHandlers(neoStore,nodeStructFactory);
 
         incomingEventDisruptor.
                 handleEventsWith(propertyMappingHandlers).
@@ -65,11 +65,11 @@ public class DisruptorBatchInserter {
                 then(nodeWriter, relationshipWriter, propertyWriter); //
     }
 
-    private void createHandlers(NeoStore neoStore) {
+    private void createHandlers(NeoStore neoStore, NodeStructFactory nodeStructFactory) {
         propertyMappingHandlers = PropertyEncodingHandler.createHandlers(inserter);
 
         propertyRecordCreatorHandler = new PropertyRecordCreatorHandler();
-        relationshipIdHandler = new RelationshipIdHandler();
+        relationshipIdHandler = new RelationshipIdHandler(nodeStructFactory.getRelsPerNode());
 
         //nodeWriter = new NodeFileWriteHandler(new File(nodeStore.getStorageFileName()));
         nodeWriter = new NodeWriteRecordHandler(neoStore.getNodeStore());
