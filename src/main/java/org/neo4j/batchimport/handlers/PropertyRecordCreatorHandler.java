@@ -26,17 +26,18 @@ public class PropertyRecordCreatorHandler implements EventHandler<NodeStruct> {
 
     private void createPropertyRecords(PropertyHolder holder) {
         if (holder.propertyCount==0) return;
-        holder.firstPropertyId = propertyId++;
+        holder.firstPropertyId = propertyId;
         PropertyRecord currentRecord = createRecord(propertyId);
+        propertyId++;
         int index=0;
         holder.propertyRecords[index++] = currentRecord;
         for (int i = 0; i < holder.propertyCount; i++) {
             PropertyBlock block = holder.properties[i].block;
             if (currentRecord.size() + block.getSize() > PAYLOAD_SIZE){
-                propertyId++;
                 currentRecord.setNextProp(propertyId);
                 currentRecord = createRecord(propertyId);
                 currentRecord.setPrevProp(propertyId-1);
+                propertyId++;
                 holder.propertyRecords[index++] = currentRecord;
             }
             currentRecord.addPropertyBlock(block);

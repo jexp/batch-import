@@ -20,7 +20,7 @@ public class RelationshipRecordWriter implements RelationshipWriter {
 
     @Override
     public void create(long nodeId, NodeStruct event, Relationship relationship, long prevId, long nextId) {
-        relationshipStore.updateRecord(createRecord(nodeId, relationship,prevId,nextId));
+        updateRecord(createRecord(nodeId, relationship,prevId,nextId));
     }
 
     @Override
@@ -33,6 +33,10 @@ public class RelationshipRecordWriter implements RelationshipWriter {
             record.setSecondPrevRel(prevId);
             record.setSecondNextRel(nextId);
         }
+        updateRecord(record);
+    }
+
+    private void updateRecord(RelationshipRecord record) {
         relationshipStore.updateRecord(record);
     }
 
@@ -43,7 +47,7 @@ public class RelationshipRecordWriter implements RelationshipWriter {
 
     @Override
     public void start(long maxRelationshipId) {
-        if (relationshipStore.getHighId() < maxRelationshipId) relationshipStore.setHighId(maxRelationshipId +1);
+        if (relationshipStore.getHighId() <= maxRelationshipId) relationshipStore.setHighId(maxRelationshipId +1);
     }
 
     @Override

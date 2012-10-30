@@ -4,7 +4,7 @@
     <artifactId>batch-performance</artifactId>
     <version>0.1-SNAPSHOT</version>
     <properties>
-        <neo4j.version>1.9.M01</neo4j.version>
+        <neo4j.version>1.9-SNAPSHOT</neo4j.version>
     </properties>
     <name>Batch-Performance Test</name>
 

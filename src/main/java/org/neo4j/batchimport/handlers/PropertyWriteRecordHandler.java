@@ -20,7 +20,7 @@ public class PropertyWriteRecordHandler implements EventHandler<NodeStruct> {
     }
 
     public void onEvent(NodeStruct event, long sequence, boolean endOfBatch) throws Exception {
-        if (propStore.getHighId() < event.lastPropertyId) propStore.setHighId(event.lastPropertyId);
+        if (propStore.getHighId() <= event.lastPropertyId) propStore.setHighId(event.lastPropertyId);
         writePropertyRecords(event);
         for (int i = 0; i < event.relationshipCount; i++) {
             writePropertyRecords(event.relationships[i]);

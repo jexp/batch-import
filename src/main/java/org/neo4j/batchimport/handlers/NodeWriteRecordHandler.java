@@ -18,11 +18,11 @@ public class NodeWriteRecordHandler implements EventHandler<NodeStruct> {
         this.nodeStore = nodeStore;
     }
 
-    public void onEvent(NodeStruct event, long id, boolean endOfBatch) throws Exception {
+    public void onEvent(NodeStruct event, long nodeId, boolean endOfBatch) throws Exception {
         counter++;
-        if (nodeStore.getHighId() < id) nodeStore.setHighId(id+1);
+        if (nodeStore.getHighId() <= nodeId) nodeStore.setHighId(nodeId+1);
         //printNode(event);
-        nodeStore.updateRecord(createRecord(event, id));
+        nodeStore.updateRecord(createRecord(event, nodeId));
         if (endOfBatch) nodeStore.flushAll();
     }
 
