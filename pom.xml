@@ -78,7 +78,7 @@
                     </finalName>
                     <archive>
                         <manifest>
-                            <mainClass>org.neo4j.batchimport.Importer</mainClass>
+                            <mainClass>org.neo4j.batchimport.ImporterTest</mainClass>
                         </manifest>
                     </archive>
                     <descriptorRefs>

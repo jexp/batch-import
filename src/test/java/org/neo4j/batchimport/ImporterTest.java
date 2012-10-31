@@ -1,5 +1,6 @@
 package org.neo4j.batchimport;
 
+import org.junit.Ignore;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
@@ -10,13 +11,13 @@ import org.neo4j.unsafe.batchinsert.BatchInserters;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.Collections;
 import java.util.Map;
 import java.util.Random;
 
 import static org.neo4j.helpers.collection.MapUtil.map;
 
-public class Importer {
+@Ignore
+public class ImporterTest {
     public static final int NUM_TYPES = 10;
     enum RelTypes implements RelationshipType {
         ONE,TWO,THREE,FOUR,FIVE,SIX,SEVEN,EIGHT,NINE,TEN
@@ -26,7 +27,7 @@ public class Importer {
     private BatchInserter db;
     private BatchInserterIndexProvider lucene;
     
-    public Importer(File graphDb) throws IOException {
+    public ImporterTest(File graphDb) throws IOException {
         if (!new File("batch.properties").exists()) {
             System.out.println("Need a Configuration File");
             return;
@@ -66,7 +67,7 @@ public class Importer {
         // int[] targetNodeIds = createTargetNodeIds(nodesCount);
         int[] targetNodeOffsets = createTargetNodeIds(nodesCount);
         long time=System.currentTimeMillis();
-        Importer importer = new Importer(graphDb);
+        ImporterTest importer = new ImporterTest(graphDb);
         try {
             importer.createNodes(nodesCount,map("blocked",Boolean.TRUE,"age",42L));
             importer.createRels(nodesCount, relsPerNode, targetNodeOffsets,map("weight",10F));
