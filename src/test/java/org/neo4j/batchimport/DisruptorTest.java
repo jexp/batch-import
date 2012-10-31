@@ -1,6 +1,7 @@
 package org.neo4j.batchimport;
 
 import org.apache.log4j.Logger;
+import org.junit.Ignore;
 import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.consistency.ConsistencyCheckTool;
 import org.neo4j.kernel.impl.util.FileUtils;
@@ -38,6 +39,7 @@ import static org.neo4j.helpers.collection.MapUtil.stringMap;
 // relationships, similar to properties
 // sorted by outgoing from node
 
+@Ignore
 public class DisruptorTest {
 
     private final static Logger log = Logger.getLogger(DisruptorBatchInserter.class);

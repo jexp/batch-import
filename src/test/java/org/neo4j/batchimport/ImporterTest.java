@@ -63,13 +63,13 @@ public class ImporterTest {
 
     @Test
     public void testImportSimpleRelationship() throws Exception {
-        importer.importRelationships(new StringReader("star\tend\ttype\ta\n1\t2\tTYPE\tfoo"));
+        importer.importRelationships(new StringReader("start\tend\ttype\ta\n1\t2\tTYPE\tfoo"));
         importer.finish();
         verify(inserter, atLeastOnce()).createRelationship(eq(1L), eq(2L), argThat(new RelationshipMatcher("TYPE")), eq(map("a", "foo")));
     }
     @Test
     public void testImportRelationshipWithIndividualTypes() throws Exception {
-        importer.importRelationships(new StringReader("star\tend\ttype\ta:int\tb:float\tc:float\n1\t2\tTYPE\t10\t10.0\t1E+10"));
+        importer.importRelationships(new StringReader("start\tend\ttype\ta:int\tb:float\tc:float\n1\t2\tTYPE\t10\t10.0\t1E+10"));
         importer.finish();
         verify(inserter, atLeastOnce()).createRelationship(eq(1L), eq(2L), argThat(new RelationshipMatcher("TYPE")), eq(map("a", 10,"b",10.0F,"c",1E+10F)));
     }
