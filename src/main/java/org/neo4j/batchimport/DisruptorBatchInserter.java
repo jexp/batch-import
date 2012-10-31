@@ -69,7 +69,7 @@ public class DisruptorBatchInserter {
         propertyMappingHandlers = PropertyEncodingHandler.createHandlers(inserter);
 
         propertyRecordCreatorHandler = new PropertyRecordCreatorHandler();
-        relationshipIdHandler = new RelationshipIdHandler(nodeStructFactory.getRelsPerNode());
+        relationshipIdHandler = new RelationshipIdHandler(nodeStructFactory.getMaxRelsPerNode());
 
         //nodeWriter = new NodeFileWriteHandler(new File(nodeStore.getStorageFileName()));
         nodeWriter = new NodeWriteRecordHandler(neoStore.getNodeStore());
@@ -87,7 +87,10 @@ public class DisruptorBatchInserter {
 
             nodeStructFactory.fillStruct(nodeId,nodeStruct);
 
-            if (nodeId % (nodesToCreate / 10) == 0) log.info(nodeId + " " + (System.currentTimeMillis()-time)+" ms.");
+            if (nodeId % (nodesToCreate / 100) == 0) {
+                log.info(nodeId + " " + (System.currentTimeMillis()-time)+" ms.");
+                time = System.currentTimeMillis();
+            }
             ringBuffer.publish(sequence);
         }
     }

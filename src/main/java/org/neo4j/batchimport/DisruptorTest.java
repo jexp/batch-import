@@ -7,7 +7,6 @@ import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 
 import java.io.*;
-import java.util.Arrays;
 import java.util.Map;
 
 import static java.util.Arrays.asList;
@@ -77,9 +76,10 @@ public class DisruptorTest {
 
     public static class TestNodeStructFactory implements NodeStructFactory {
         public static final int RELS_PER_NODE = 10;
+        public static final int MAX_RELS_PER_NODE = TestNodeStructFactory.RELS_PER_NODE;
         public static final int REL_PROPERTY_COUNT = 1;
         public static final int NODE_PROPERTY_COUNT = 2;
-        public static final int[] REL_OFFSETS = new int[RELS_PER_NODE];
+        public static final int[] REL_OFFSETS = new int[MAX_RELS_PER_NODE];
 
         // constant values, to avoid boxing every time
         private final static Float WEIGHT = 10F;
@@ -92,12 +92,12 @@ public class DisruptorTest {
         private int type;
 
         static {
-            for (int i = 0; i < TestNodeStructFactory.RELS_PER_NODE; i++) TestNodeStructFactory.REL_OFFSETS[i] = 1 << 2 * i;
+            for (int i = 0; i < MAX_RELS_PER_NODE; i++) TestNodeStructFactory.REL_OFFSETS[i] = 1 << 2 * i;
         }
 
         @Override
         public NodeStruct newInstance() {
-            return new NodeStruct(NODE_PROPERTY_COUNT, RELS_PER_NODE, REL_PROPERTY_COUNT);
+            return new NodeStruct(NODE_PROPERTY_COUNT);
         }
 
         @Override
@@ -109,6 +109,7 @@ public class DisruptorTest {
             age = inserter.getPropertyKeyId("age");
             weight = inserter.getPropertyKeyId("weight");
             type = inserter.getRelTypeId("CONNECTS");
+            NodeStruct.classInit(RELS_PER_NODE,REL_PROPERTY_COUNT);
         }
 
         @Override
@@ -118,7 +119,7 @@ public class DisruptorTest {
             nodeStruct.addProperty(blocked, Boolean.TRUE);
             nodeStruct.addProperty(age, VALUE);
             // now only "local" relationships close to the original node-id
-            for (int r = 0; r < TestNodeStructFactory.RELS_PER_NODE; r++) {
+            for (int r = 0; r < MAX_RELS_PER_NODE; r++) {
                 long target = nodeId + TestNodeStructFactory.REL_OFFSETS[r];
                 // only target nodes beyond the current one
                 if (target >= NODES_TO_CREATE) continue;
@@ -130,6 +131,11 @@ public class DisruptorTest {
         @Override
         public int getRelsPerNode() {
             return RELS_PER_NODE;
+        }
+
+        @Override
+        public int getMaxRelsPerNode() {
+            return MAX_RELS_PER_NODE;
         }
     }
 }

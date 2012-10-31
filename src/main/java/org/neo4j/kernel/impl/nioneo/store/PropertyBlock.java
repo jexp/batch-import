@@ -28,6 +28,7 @@ import java.util.List;
 public class PropertyBlock
 {
     private static final int MAX_ARRAY_TOSTRING_SIZE = 4;
+    public static final long[] EMPTY_LONG_ARRAY = new long[0];
     private final List<DynamicRecord> valueRecords = new ArrayList<DynamicRecord>(8);
     private long[] valueBlocks;
     // private boolean inUse;
@@ -61,6 +62,12 @@ public class PropertyBlock
         valueBlocks[0] = value;
         valueRecords.clear();
         light = true;
+    }
+
+    public void clean() {
+        valueBlocks = EMPTY_LONG_ARRAY;
+        light = true;
+        valueRecords.clear();
     }
 
     public void addValueRecord( DynamicRecord record )

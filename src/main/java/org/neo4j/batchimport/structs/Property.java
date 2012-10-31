@@ -10,16 +10,18 @@ import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
 public class Property {
     public volatile int nameIndex;
     public volatile Object value;
-    public volatile PropertyBlock block;
+    public final PropertyBlock block = new PropertyBlock();
 
     void init(int index, Object value) {
-        this.nameIndex =index;
+        this.nameIndex = index;
         this.value = value;
-        this.block = null;
+        this.block.clean();
     }
     public void encode(PropertyStore propStore) {
-        PropertyBlock block = new PropertyBlock();
         propStore.encodeValue(block, nameIndex, value);
-        this.block = block;
+    }
+
+    public void clean() {
+        this.value = null;
     }
 }

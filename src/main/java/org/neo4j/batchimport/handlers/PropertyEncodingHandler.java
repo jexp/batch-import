@@ -34,7 +34,7 @@ public class PropertyEncodingHandler implements EventHandler<NodeStruct> {
         if ((sequence & MASK) != pos) return;
         encodeProperties(event);
         for (int i = 0; i < event.relationshipCount; i++) {
-             encodeProperties(event.relationships[i]);
+             encodeProperties(event.getRelationship(i));
         }
     }
 

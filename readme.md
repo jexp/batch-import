@@ -29,3 +29,18 @@ current limitations, constraints:
 * only up to 2bn relationships (due to an int based multi-map)
 * have to know max # of rels per node, properties per node and relationship
 * relationships have to be pre-sorted by min(start,end)
+
+
+future improvements:
+
+* implement batch-importer CSV "API" on top of this
+* stripe writes across store-files (i.e. strip the relationship-record file over 10 handlers, according to CPUs)
+* parallelize writing to dynamic string and arraystore too
+* change relationship-record updates for backwards pointers to run in a separate handler that is
+  RandomAccessFile-based (or nio2) and just writes the 2 int values directly at file-pos
+* add a csv analyser / sorter that
+* add support & parallelize index addition
+* good support for index based lookup for relationship construction (kv-store, better in-memory structure, e.g. a collection of long[])
+* use id-compression internally to save memory in structs (write a CompressedLongArray)
+* reuse PropertyBlock, PropertyRecords, RelationshipRecords, NodeRecords, probably subclass them and override getId() etc. or copy the code
+  from the Store's to work with interfaces

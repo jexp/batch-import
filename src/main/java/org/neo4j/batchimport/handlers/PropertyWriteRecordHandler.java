@@ -23,7 +23,7 @@ public class PropertyWriteRecordHandler implements EventHandler<NodeStruct> {
         if (propStore.getHighId() <= event.lastPropertyId) propStore.setHighId(event.lastPropertyId);
         writePropertyRecords(event);
         for (int i = 0; i < event.relationshipCount; i++) {
-            writePropertyRecords(event.relationships[i]);
+            writePropertyRecords(event.getRelationship(i));
         }
         if (endOfBatch) propStore.flushAll();
     }

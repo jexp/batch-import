@@ -1,5 +1,7 @@
 package org.neo4j.batchimport.collections;
 
+import edu.ucla.sspace.util.primitive.IntSet;
+
 import java.util.Arrays;
 import java.util.concurrent.ConcurrentHashMap;
 

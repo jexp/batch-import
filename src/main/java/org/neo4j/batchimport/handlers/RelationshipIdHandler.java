@@ -31,7 +31,7 @@ public class RelationshipIdHandler implements EventHandler<NodeStruct> {
 
     public void onEvent(NodeStruct event, long nodeId, boolean endOfBatch) throws Exception {
         for (int i = 0; i < event.relationshipCount; i++) {
-            Relationship relationship = event.relationships[i];
+            Relationship relationship = event.getRelationship(i);
             long relId = this.relId++;
             relationship.id = relId;
             storeFutureRelId(nodeId, relationship,relId);
@@ -60,7 +60,7 @@ public class RelationshipIdHandler implements EventHandler<NodeStruct> {
     }
 
     private long firstRelationshipId(NodeStruct event) {
-        if (event.relationshipCount>0) return event.relationships[0].id;
+        if (event.relationshipCount>0) return event.getRelationship(0).id;
         if (event.outgoingRelationshipsToUpdate!=null) return event.outgoingRelationshipsToUpdate[0];
         if (event.incomingRelationshipsToUpdate!=null) return event.incomingRelationshipsToUpdate[0];
         return Record.NO_PREV_RELATIONSHIP.intValue();
@@ -71,7 +71,7 @@ public class RelationshipIdHandler implements EventHandler<NodeStruct> {
 
         if (event.incomingRelationshipsToUpdate!=null) result=Math.max(event.incomingRelationshipsToUpdate[Utils.size(event.incomingRelationshipsToUpdate)-1],result);
         if (event.outgoingRelationshipsToUpdate!=null) result=Math.max(event.outgoingRelationshipsToUpdate[Utils.size(event.outgoingRelationshipsToUpdate)-1],result);
-        if (event.relationshipCount>0) result=Math.max(event.relationships[event.relationshipCount-1].id,result);
+        if (event.relationshipCount>0) result=Math.max(event.getRelationship(event.relationshipCount-1).id,result);
         return result;
     }
 

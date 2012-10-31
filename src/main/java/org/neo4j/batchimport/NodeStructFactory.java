@@ -16,4 +16,6 @@ public interface NodeStructFactory extends EventFactory<NodeStruct> {
     void fillStruct(long nodeId, NodeStruct nodeStruct);
 
     int getRelsPerNode();
+
+    int getMaxRelsPerNode();
 }

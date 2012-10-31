@@ -33,8 +33,8 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
 
         long prevId = Record.NO_PREV_RELATIONSHIP.intValue();
         for (int i = 0; i < count; i++) {
-            long nextId = i+1 < count ? event.relationships[i + 1].id : followingNextRelationshipId;
-            Relationship relationship = event.relationships[i];
+            long nextId = i+1 < count ? event.getRelationship(i+1).id : followingNextRelationshipId;
+            Relationship relationship = event.getRelationship(i);
             relationshipWriter.create(nodeId,event, relationship, prevId, nextId);
             prevId = relationship.id;
             counter++;
