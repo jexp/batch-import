@@ -1,9 +1,11 @@
 .project
 .shell_history
-.idea
 *.ipr
 *.iws
 *.iml
+.idea
 target
 *.csv
+.DS_Store
+.settings
 
