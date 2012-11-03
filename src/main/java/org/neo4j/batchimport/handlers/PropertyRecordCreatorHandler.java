@@ -17,7 +17,7 @@ public class PropertyRecordCreatorHandler implements EventHandler<NodeStruct> {
     private volatile long propertyId=0;
 
     @Override
-    public void onEvent(NodeStruct event, long sequence, boolean endOfBatch) throws Exception {
+    public void onEvent(NodeStruct event, long nodeId, boolean endOfBatch) throws Exception {
         createPropertyRecords(event);
         for (int i = 0; i < event.relationshipCount; i++) {
             createPropertyRecords(event.getRelationship(i));

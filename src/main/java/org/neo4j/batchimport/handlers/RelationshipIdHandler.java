@@ -45,7 +45,7 @@ public class RelationshipIdHandler implements EventHandler<NodeStruct> {
 
     private void storeFutureRelId(long nodeId, Relationship relationship, long relId) {
         long other = relationship.other();
-        if (other <= nodeId) return;
+        if (other < nodeId) return;
         if (relationship.outgoing()) {
             futureModeRelIdQueueIncoming.add(other, relId);
         } else {

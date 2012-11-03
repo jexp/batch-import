@@ -15,7 +15,7 @@ public class PropertyEncodingHandler implements EventHandler<NodeStruct> {
     private long count;
     private final int pos;
     private final PropertyStore propStore;
-    public static final int MASK = 1;
+    public static final int MASK = 0;
 
     public PropertyEncodingHandler(BatchInserterImpl inserter, int pos) {
         this.pos = pos;
@@ -30,8 +30,8 @@ public class PropertyEncodingHandler implements EventHandler<NodeStruct> {
         return propertyMappingHandlers;
     }
 
-    public void onEvent(NodeStruct event, long sequence, boolean endOfBatch) throws Exception {
-        if ((sequence & MASK) != pos) return;
+    public void onEvent(NodeStruct event, long nodeId, boolean endOfBatch) throws Exception {
+        if ((nodeId & MASK) != pos) return;
         encodeProperties(event);
         for (int i = 0; i < event.relationshipCount; i++) {
              encodeProperties(event.getRelationship(i));

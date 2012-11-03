@@ -81,7 +81,7 @@ public class Importer {
         String line;
         report.reset();
         while ((line = bf.readLine()) != null) {
-            db.createNode(data.update(line));
+            db.createNode(data.updateMap(line));
             report.dots();
         }
         report.finishImport("Nodes");
@@ -95,7 +95,7 @@ public class Importer {
         String line;
         report.reset();
         while ((line = bf.readLine()) != null) {
-            final Map<String, Object> properties = data.update(line, rel);
+            final Map<String, Object> properties = data.updateMap(line, rel);
             db.createRelationship(id(rel[0]), id(rel[1]), relType.update(rel[2]), properties);
             report.dots();
         }
@@ -111,7 +111,7 @@ public class Importer {
         String line;
         report.reset();
         while ((line = bf.readLine()) != null) {        
-            final Map<String, Object> properties = data.update(line, node);
+            final Map<String, Object> properties = data.updateMap(line, node);
             index.add(id(node[0]), properties);
             report.dots();
         }

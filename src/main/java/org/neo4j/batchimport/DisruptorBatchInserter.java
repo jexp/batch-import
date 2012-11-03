@@ -1,5 +1,6 @@
 package org.neo4j.batchimport;
 
+import com.lmax.disruptor.ExceptionHandler;
 import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.YieldingWaitStrategy;
@@ -20,13 +21,15 @@ import java.util.concurrent.Executors;
 * @author mh
 * @since 27.10.12
 */
+
+// todo self-relationships
 public class DisruptorBatchInserter {
 
     private final static Logger log = Logger.getLogger(DisruptorBatchInserter.class);
 
-    private final static int RING_SIZE = 1 <<  18;
+    private final int RING_SIZE;
 
-    private Disruptor<NodeStruct> incomingEventDisruptor;
+    private Disruptor<NodeStruct> disruptor;
     private final String storeDir;
     private BatchInserterImpl inserter;
     private ExecutorService executor;
@@ -39,9 +42,12 @@ public class DisruptorBatchInserter {
     private final Map<String,String> config;
     private final long nodesToCreate;
     private final NodeStructFactory nodeStructFactory;
+    private volatile boolean stop;
 
-    public DisruptorBatchInserter(String storeDir, final Map<String, String> config, int nodesToCreate, final NodeStructFactory nodeStructFactory) {
+    public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
+        final int minBufferBits = (int) (Math.log(nodesToCreate / 100) / Math.log(2));
+        RING_SIZE = 1 << Math.min(minBufferBits,18);
         this.config = config;
         this.nodesToCreate = nodesToCreate;
         this.nodeStructFactory = nodeStructFactory;
@@ -52,14 +58,14 @@ public class DisruptorBatchInserter {
         nodeStructFactory.init(inserter);
         NeoStore neoStore = inserter.getNeoStore();
         neoStore.getNodeStore().setHighId(nodesToCreate + 1);
-        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        //final ExecutorService executor = Executors.newCachedThreadPool();
+        // executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        executor = Executors.newCachedThreadPool();
 
-        incomingEventDisruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(RING_SIZE), new YieldingWaitStrategy());
+        disruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(RING_SIZE), new YieldingWaitStrategy());
+        disruptor.handleExceptionsWith(new BatchInserterExceptionHandler());
+        createHandlers(neoStore, nodeStructFactory);
 
-        createHandlers(neoStore,nodeStructFactory);
-
-        incomingEventDisruptor.
+        disruptor.
                 handleEventsWith(propertyMappingHandlers).
                 then(propertyRecordCreatorHandler, relationshipIdHandler).
                 then(nodeWriter, relationshipWriter, propertyWriter); //
@@ -79,9 +85,10 @@ public class DisruptorBatchInserter {
     }
 
     void run() {
-        RingBuffer<NodeStruct> ringBuffer = incomingEventDisruptor.start();
+        RingBuffer<NodeStruct> ringBuffer = disruptor.start();
         long time = System.currentTimeMillis();
         for (long nodeId = 0; nodeId < nodesToCreate; nodeId++) {
+            if (stop) break;
             long sequence = ringBuffer.next();
             NodeStruct nodeStruct = ringBuffer.get(sequence).init();
 
@@ -95,7 +102,7 @@ public class DisruptorBatchInserter {
         }
     }
     void shutdown() {
-        incomingEventDisruptor.shutdown();
+        disruptor.shutdown();
         executor.shutdown();
 
         nodeWriter.close();
@@ -112,5 +119,26 @@ public class DisruptorBatchInserter {
         log.info("wrote nodes " + nodeWriter);
         log.info("wrote rels " + relationshipWriter);
         log.info("wrote props " + propertyWriter);
+    }
+
+    private class BatchInserterExceptionHandler implements ExceptionHandler {
+        @Override
+        public void handleEventException(Throwable throwable, long nodeId, Object record) {
+            log.error(String.format("Error for Node %d Record %s",nodeId,record),throwable);
+            // TODO alternatively continue and just log the error
+            stop = true;
+        }
+
+        @Override
+        public void handleOnStartException(Throwable throwable) {
+            log.error("Error on start ",throwable);
+            System.exit(1);
+        }
+
+        @Override
+        public void handleOnShutdownException(Throwable throwable) {
+            log.error("Error on shutdown ",throwable);
+            System.exit(1);
+        }
     }
 }

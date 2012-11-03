@@ -15,6 +15,7 @@ public class RowData {
     private final Type types[];
     private final int lineSize;
     private int dataSize;
+    private int count;
 
     public RowData(String header, String delim, int offset) {
         this.offset = offset;
@@ -24,6 +25,11 @@ public class RowData {
         types = parseTypes(fields);
         lineData = new String[lineSize];
         createMapData(lineSize, offset);
+    }
+
+    public String[] getFields() {
+        if (offset==0) return fields;
+        return Arrays.copyOfRange(fields,offset,fields.length);
     }
 
     private Object[] createMapData(int lineSize, int offset) {
@@ -49,9 +55,8 @@ public class RowData {
         return types;
     }
 
-    private int split(String line) {
+    private void parse(String line) {
         final StringTokenizer st = new StringTokenizer(line, delim,true);
-        int count=0;
         for (int i = 0; i < lineSize; i++) {
             String value = st.nextToken();
             if (value.equals(delim)) {
@@ -60,26 +65,60 @@ public class RowData {
                 lineData[i] = value.trim().isEmpty() ? null : value;
                 if (i< lineSize -1) st.nextToken();
             }
-            if (i >= offset && lineData[i]!=null) {
-                data[count++]=fields[i];
-                data[count++]=types[i].convert(lineData[i]);
-            }
+        }
+    }
+    
+    public Object[] process(String line) {
+        parse(line);
+        count = 0;
+        for (int i=offset;i<lineSize;i++) {
+            data[count++] = lineData[i] == null ? null : types[i].convert(lineData[i]);
+        }
+        return data;
+    }
+
+    private int split(String line) {
+        parse(line);
+        count = 0;
+        for (int i = offset; i < lineSize; i++) {
+            if (lineData[i] == null) continue;
+            data[count++]=fields[i];
+            data[count++]=types[i].convert(lineData[i]);
         }
         return count;
     }
 
-    public Map<String,Object> update(String line, Object... header) {
-        int nonNullCount = split(line);
+    public Map<String,Object> updateMap(String line, Object... header) {
+        split(line);
         if (header.length > 0) {
             System.arraycopy(lineData, 0, header, 0, header.length);
         }
 
-        if (nonNullCount == dataSize*2) {
+        if (count == dataSize*2) {
             return map(data);
         }
-        Object[] newData=new Object[nonNullCount];
-        System.arraycopy(data,0,newData,0,nonNullCount);
+        Object[] newData=new Object[count];
+        System.arraycopy(data,0,newData,0,count);
         return map(newData);
     }
 
+    public Object[] updateArray(String line, Object... header) {
+        process(line);
+        if (header.length > 0) {
+            System.arraycopy(lineData, 0, header, 0, header.length);
+        }
+        return data;
+    }
+
+    public Object[] getData() {
+        return data;
+    }
+
+    public int getCount() {
+        return count;
+    }
+
+    public int getLineSize() {
+        return lineSize;
+    }
 }
