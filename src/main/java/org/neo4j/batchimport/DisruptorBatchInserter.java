@@ -58,8 +58,8 @@ public class DisruptorBatchInserter {
         nodeStructFactory.init(inserter);
         NeoStore neoStore = inserter.getNeoStore();
         neoStore.getNodeStore().setHighId(nodesToCreate + 1);
-        // executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        executor = Executors.newCachedThreadPool();
+        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        //executor = Executors.newCachedThreadPool();
 
         disruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(RING_SIZE), new YieldingWaitStrategy());
         disruptor.handleExceptionsWith(new BatchInserterExceptionHandler());

@@ -15,7 +15,7 @@ public class PropertyEncodingHandler implements EventHandler<NodeStruct> {
     private long count;
     private final int pos;
     private final PropertyStore propStore;
-    public static final int MASK = 0;
+    public static final int MASK = 1;
 
     public PropertyEncodingHandler(BatchInserterImpl inserter, int pos) {
         this.pos = pos;
