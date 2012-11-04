@@ -104,7 +104,7 @@ public class RowData {
 
     public Object[] updateArray(String line, Object... header) {
         process(line);
-        if (header.length > 0) {
+        if (header!=null && header.length > 0) {
             System.arraycopy(lineData, 0, header, 0, header.length);
         }
         return data;

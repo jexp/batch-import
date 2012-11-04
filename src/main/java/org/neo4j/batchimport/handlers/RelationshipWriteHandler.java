@@ -2,6 +2,7 @@ package org.neo4j.batchimport.handlers;
 
 import com.lmax.disruptor.EventHandler;
 import org.neo4j.batchimport.Utils;
+import org.neo4j.batchimport.collections.CompactLongRecord;
 import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.batchimport.structs.Relationship;
 import org.neo4j.kernel.impl.nioneo.store.Record;
@@ -26,10 +27,12 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
         relationshipWriter.start(event.maxRelationshipId);
 
         int count = event.relationshipCount;
-        long followingNextRelationshipId =
-                event.outgoingRelationshipsToUpdate!=null ? event.outgoingRelationshipsToUpdate[0] :
-                event.incomingRelationshipsToUpdate!=null ? event.incomingRelationshipsToUpdate[0] :
-                                                            Record.NO_NEXT_RELATIONSHIP.intValue();
+        long followingNextRelationshipId = Record.NO_NEXT_RELATIONSHIP.intValue();
+        if (event.relationshipsToUpdate !=null) {
+            long value = event.relationshipsToUpdate.firstPositive();
+            if (value == -1) value = event.relationshipsToUpdate.firstNegative();
+            if (value != -1) followingNextRelationshipId = value;
+        }
 
         long prevId = Record.NO_PREV_RELATIONSHIP.intValue();
         for (int i = 0; i < count; i++) {
@@ -40,22 +43,22 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
             counter++;
         }
 
-        followingNextRelationshipId =
-                event.incomingRelationshipsToUpdate!=null ? event.incomingRelationshipsToUpdate[0] :
-                                                            Record.NO_NEXT_RELATIONSHIP.intValue();
+        if (event.relationshipsToUpdate!=null) {
 
-        prevId = createUpdateRecords(event.outgoingRelationshipsToUpdate, prevId, followingNextRelationshipId,true);
+            followingNextRelationshipId = event.relationshipsToUpdate.firstNegative();
 
-        followingNextRelationshipId = Record.NO_NEXT_RELATIONSHIP.intValue();
+            prevId = createUpdateRecords(event.relationshipsToUpdate.getOutgoing(), prevId, followingNextRelationshipId,true);
 
-        createUpdateRecords(event.incomingRelationshipsToUpdate, prevId, followingNextRelationshipId, false);
+            followingNextRelationshipId = Record.NO_NEXT_RELATIONSHIP.intValue();
 
-        if (endOfBatch) relationshipWriter.flush();
+            createUpdateRecords(event.relationshipsToUpdate.getIncoming(), prevId, followingNextRelationshipId, false);
+        }
+            if (endOfBatch) relationshipWriter.flush();
     }
 
     private long createUpdateRecords(long[] relIds, long prevId, long followingNextRelationshipId, boolean outgoing) throws IOException {
-        if (relIds==null) return prevId;
-        int count = Utils.size(relIds);
+        if (relIds==null || relIds.length==0) return prevId;
+        int count = relIds.length;
         for (int i = 0; i < count; i++) {
             long nextId = i+1 < count ? relIds[i + 1] : followingNextRelationshipId;
             relationshipWriter.update(relIds[i], outgoing, prevId, nextId);

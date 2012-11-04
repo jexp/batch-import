@@ -18,7 +18,7 @@ public class DisruptorBatchInserterTest {
     public void testSelfRelationship() throws Exception {
         final NodeStruct struct = new NodeStruct(0);
         struct.addRel(0, true, 0);
-        new RelationshipIdHandler(1).onEvent(struct,0,false);
+        new RelationshipIdHandler().onEvent(struct,0,false);
         //new RelationshipWriteHandler(new RelationshipRecordWriter(neoStore.getRelationshipStore())).onEvent(struct,0,false);
     }
 }

@@ -14,7 +14,7 @@ import java.util.Random;
 @Ignore
 public class TestDataGenerator {
 
-    private static int NODES = 100 * 1000  * 1000; // * 1000;
+    private static int NODES = 1000  * 1000; // * 1000;
     private static final int RELS_PER_NODE = 50;
     private static final String[] TYPES = {"ONE","TWO","THREE","FOUR","FIVE","SIX","SEVEN","EIGHT","NINE","TEN"};
     public static final int NUM_TYPES = 10;

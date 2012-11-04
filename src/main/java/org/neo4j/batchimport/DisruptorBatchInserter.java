@@ -46,8 +46,9 @@ public class DisruptorBatchInserter {
 
     public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
-        final int minBufferBits = (int) (Math.log(nodesToCreate / 100) / Math.log(2));
+        final int minBufferBits = 14; // (int) (Math.log(nodesToCreate / 100) / Math.log(2));
         RING_SIZE = 1 << Math.min(minBufferBits,18);
+        System.out.println("Ring size "+RING_SIZE);
         this.config = config;
         this.nodesToCreate = nodesToCreate;
         this.nodeStructFactory = nodeStructFactory;
@@ -58,8 +59,8 @@ public class DisruptorBatchInserter {
         nodeStructFactory.init(inserter);
         NeoStore neoStore = inserter.getNeoStore();
         neoStore.getNodeStore().setHighId(nodesToCreate + 1);
-        executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
-        //executor = Executors.newCachedThreadPool();
+        final int processors = Runtime.getRuntime().availableProcessors();
+        executor = processors >=4 ? Executors.newFixedThreadPool(processors) : Executors.newCachedThreadPool();
 
         disruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(RING_SIZE), new YieldingWaitStrategy());
         disruptor.handleExceptionsWith(new BatchInserterExceptionHandler());
@@ -75,7 +76,7 @@ public class DisruptorBatchInserter {
         propertyMappingHandlers = PropertyEncodingHandler.createHandlers(inserter);
 
         propertyRecordCreatorHandler = new PropertyRecordCreatorHandler();
-        relationshipIdHandler = new RelationshipIdHandler(nodeStructFactory.getMaxRelsPerNode());
+        relationshipIdHandler = new RelationshipIdHandler();
 
         //nodeWriter = new NodeFileWriteHandler(new File(nodeStore.getStorageFileName()));
         nodeWriter = new NodeWriteRecordHandler(neoStore.getNodeStore());

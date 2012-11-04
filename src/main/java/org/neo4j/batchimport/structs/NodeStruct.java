@@ -1,5 +1,6 @@
 package org.neo4j.batchimport.structs;
 
+import org.neo4j.batchimport.collections.CompactLongRecord;
 import org.neo4j.kernel.impl.nioneo.store.Record;
 
 import java.util.ArrayList;
@@ -20,8 +21,7 @@ public class NodeStruct extends PropertyHolder {
 
     public volatile long lastPropertyId;
     public volatile long maxRelationshipId;
-    public volatile long[] outgoingRelationshipsToUpdate;
-    public volatile long[] incomingRelationshipsToUpdate;
+    public volatile CompactLongRecord relationshipsToUpdate;
     private static int avgRelCount;
     private static int relPropertyCount;
 

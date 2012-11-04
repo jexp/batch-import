@@ -204,11 +204,10 @@ public class ParallelImporter implements NodeStructFactory {
     @Override
     public void fillStruct(long nodeId, NodeStruct nodeStruct) {
         try {
-            nodeStruct.init();
             String nodesLine = nodesReader.readLine();
             if (nodesLine == null) throw new IllegalStateException("Less Node rows than indicated at id " + nodeId);
 
-            final Object[] rowData = nodesData.updateArray(nodesLine);
+            final Object[] rowData = nodesData.updateArray(nodesLine,(Object[])null);
             addProperties(nodeStruct, rowData, nodesData.getCount(), nodePropIds);
 
             addRelationships(nodeId, nodeStruct);
