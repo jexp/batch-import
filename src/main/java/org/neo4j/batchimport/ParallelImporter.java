@@ -51,6 +51,7 @@ public class ParallelImporter implements NodeStructFactory {
     private final static Logger log = Logger.getLogger(ParallelImporter.class);
 
     private static final boolean RUN_CHECK = false;
+    private static final int MEGABYTE = 1024 * 1024;
     private DisruptorBatchInserter inserter;
     private final File graphDb;
     private final File nodesFile;
@@ -177,11 +178,11 @@ public class ParallelImporter implements NodeStructFactory {
     }
 
     private void initReader() throws IOException {
-        nodesReader = new BufferedReader(new FileReader(nodesFile));
+        nodesReader = new BufferedReader(new FileReader(nodesFile), MEGABYTE);
         nodesData = new RowData(nodesReader.readLine(), "\t", 0);
 
         relHeader = new Object[3];
-        relsReader = new BufferedReader(new FileReader(relationshipsFile));
+        relsReader = new BufferedReader(new FileReader(relationshipsFile), MEGABYTE);
         relsData = new RowData(relsReader.readLine(), "\t", 3);
     }
 
