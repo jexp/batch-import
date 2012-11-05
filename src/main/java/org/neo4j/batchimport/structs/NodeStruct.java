@@ -20,8 +20,7 @@ public class NodeStruct extends PropertyHolder {
     public volatile int relationshipCount;
 
     public volatile long lastPropertyId;
-    public volatile long maxRelationshipId;
-    public volatile CompactLongRecord relationshipsToUpdate;
+
     private static int avgRelCount;
     private static int relPropertyCount;
 
