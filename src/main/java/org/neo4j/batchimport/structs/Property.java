@@ -15,13 +15,18 @@ public class Property {
     void init(int index, Object value) {
         this.nameIndex = index;
         this.value = value;
+        cleanBlock();
+    }
+
+    public void cleanBlock() {
         this.block.clean();
     }
+
     public void encode(PropertyStore propStore) {
         propStore.encodeValue(block, nameIndex, value);
     }
 
-    public void clean() {
+    public void cleanValue() {
         this.value = null;
     }
 }

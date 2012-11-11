@@ -43,7 +43,7 @@ public class PropertyRecordCreatorHandler implements EventHandler<NodeStruct> {
                 holder.propertyRecords[index++] = currentRecord;
             }
             currentRecord.addPropertyBlock(block);
-            property.clean();
+            property.cleanValue();
         }
         if (index<holder.propertyRecords.length) holder.propertyRecords[index]=null;
     }

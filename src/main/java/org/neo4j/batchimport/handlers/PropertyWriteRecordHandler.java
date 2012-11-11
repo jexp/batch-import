@@ -28,16 +28,16 @@ public class PropertyWriteRecordHandler implements EventHandler<NodeStruct> {
         // if (endOfBatch) propStore.flushAll();
     }
 
-    private boolean writePropertyRecords(PropertyHolder holder) {
-        if (holder.propertyCount==0) return true;
+    private void writePropertyRecords(PropertyHolder holder) {
+        if (holder.propertyCount==0) return;
 
         for (int i=0;i<holder.propertyCount;i++) {
             PropertyRecord record = holder.propertyRecords[i];
-            if (record == null) return true;
+            if (record == null) break;
             propStore.updateRecord(record);
             counter++;
         }
-        return false;
+        holder.cleanProperties();
     }
 
     @Override

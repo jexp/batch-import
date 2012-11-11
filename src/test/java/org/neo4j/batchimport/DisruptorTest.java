@@ -78,8 +78,8 @@ public class DisruptorTest {
         //"dump_configuration", "true",
         "cache_type", "none",
         "neostore.nodestore.db.mapped_memory", "1G",
-        "neostore.propertystore.db.mapped_memory", "5G",
-        "neostore.relationshipstore.db.mapped_memory", "20G"
+        "neostore.propertystore.db.mapped_memory", "2G",
+        "neostore.relationshipstore.db.mapped_memory", "5G"
 );
     }
 

@@ -3,6 +3,8 @@ package org.neo4j.batchimport.structs;
 import org.neo4j.kernel.impl.nioneo.store.PropertyRecord;
 import org.neo4j.kernel.impl.nioneo.store.Record;
 
+import java.util.Arrays;
+
 /**
 * @author mh
 * @since 27.10.12
@@ -30,5 +32,13 @@ public class PropertyHolder {
     }
     public void addProperty(int id, Object value) {
         this.properties[propertyCount++].init(id,value);
+    }
+
+    public void cleanProperties() {
+        for (Property property : properties) {
+            property.cleanValue();
+            property.cleanBlock();
+        }
+        Arrays.fill(propertyRecords,null);
     }
 }
