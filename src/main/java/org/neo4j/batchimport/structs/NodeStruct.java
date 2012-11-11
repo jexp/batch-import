@@ -39,11 +39,16 @@ public class NodeStruct extends PropertyHolder {
 
     public NodeStruct init() {
         super.init();
-        if (!isRelInArray(relationshipCount)) moreRelationships.clear();
-        relationshipCount=0;
         nextRel = Record.NO_NEXT_RELATIONSHIP.intValue();
+        clearRelationshipInfo();
         return this;
     }
+
+    public void clearRelationshipInfo() {
+        if (!isRelInArray(relationshipCount)) moreRelationships.clear();
+        relationshipCount=0;
+    }
+
     public Relationship addRel(long other, boolean outgoing, int type) {
         if (isRelInArray(relationshipCount++)) {
             return relationships[relationshipCount-1].init(other,outgoing,type);

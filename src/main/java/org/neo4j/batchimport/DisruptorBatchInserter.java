@@ -47,7 +47,7 @@ public class DisruptorBatchInserter {
     public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
         final int minBufferBits = 18; // (int) (Math.log(nodesToCreate / 100) / Math.log(2));
-        RING_SIZE = 1 << 14; //Math.min(minBufferBits,18);
+        RING_SIZE = 1 << minBufferBits; //Math.min(minBufferBits,18);
         System.out.println("Ring size "+RING_SIZE);
         this.config = config;
         this.nodesToCreate = nodesToCreate;
@@ -60,7 +60,7 @@ public class DisruptorBatchInserter {
         NeoStore neoStore = inserter.getNeoStore();
         neoStore.getNodeStore().setHighId(nodesToCreate + 1);
         final int processors = Runtime.getRuntime().availableProcessors();
-        executor = processors >=4 ? Executors.newFixedThreadPool(processors) : Executors.newCachedThreadPool();
+        executor = processors >=4 ? Executors.newFixedThreadPool(processors*2) : Executors.newCachedThreadPool();
 
         disruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(RING_SIZE), new YieldingWaitStrategy());
         disruptor.handleExceptionsWith(new BatchInserterExceptionHandler());

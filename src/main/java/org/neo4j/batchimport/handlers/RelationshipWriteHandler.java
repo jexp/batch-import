@@ -60,6 +60,8 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
             counter++;
         }
 
+        event.clearRelationshipInfo();
+
         if (relationshipsToUpdate!=null) {
 
             followingNextRelationshipId = relationshipsToUpdate.firstNegative();
@@ -70,7 +72,7 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
 
             createUpdateRecords(relationshipsToUpdate.getIncoming(), prevId, followingNextRelationshipId, false);
         }
-            if (endOfBatch) relationshipWriter.flush();
+        //   if (endOfBatch) relationshipWriter.flush();
     }
 
     private long createUpdateRecords(long[] relIds, long prevId, long followingNextRelationshipId, boolean outgoing) throws IOException {

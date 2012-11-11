@@ -52,7 +52,7 @@ public class DisruptorTest {
     private final static Logger log = Logger.getLogger(DisruptorBatchInserter.class);
 
     public static final String STORE_DIR = "target/test-db2";
-    public static final int NODES_TO_CREATE = 1000 * 1000 ;
+    public static final int NODES_TO_CREATE = 100 * 1000 * 1000 ;
     private static final boolean RUN_CHECK = true;
 
     @SuppressWarnings("unchecked")
@@ -77,9 +77,9 @@ public class DisruptorTest {
         return stringMap("use_memory_mapped_buffers", "true",
         //"dump_configuration", "true",
         "cache_type", "none",
-        "neostore.nodestore.db.mapped_memory", "50M",
-        "neostore.propertystore.db.mapped_memory", "1G",
-        "neostore.relationshipstore.db.mapped_memory", "500M"
+        "neostore.nodestore.db.mapped_memory", "1G",
+        "neostore.propertystore.db.mapped_memory", "5G",
+        "neostore.relationshipstore.db.mapped_memory", "20G"
 );
     }
 

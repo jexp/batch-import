@@ -9,7 +9,7 @@ import java.nio.ByteBuffer;
  */
 public class RelationshipUpdateCache {
     private static final int BUCKETS = 16;
-    private static final int CAPACITY = (1024^2)*(Short.SIZE + 3*Integer.SIZE)/8;
+    private static final int CAPACITY = 100*(1024^2)*(Short.SIZE + 3*Integer.SIZE)/8;
 
     private volatile long added, written;
     private final ByteBuffer[] buffers;

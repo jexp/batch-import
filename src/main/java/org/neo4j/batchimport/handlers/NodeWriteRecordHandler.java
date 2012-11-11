@@ -23,7 +23,7 @@ public class NodeWriteRecordHandler implements EventHandler<NodeStruct> {
         if (nodeStore.getHighId() <= nodeId) nodeStore.setHighId(nodeId+1);
         //printNode(event);
         nodeStore.updateRecord(createRecord(event, nodeId));
-        if (endOfBatch) nodeStore.flushAll();
+        //if (endOfBatch) nodeStore.flushAll();
     }
 
     private NodeRecord createRecord(NodeStruct event, long id) {
