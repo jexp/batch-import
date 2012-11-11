@@ -266,4 +266,8 @@ public class ParallelImporter implements NodeStructFactory {
     public int getMaxRelsPerNode() {
         return maxRelsPerNode;
     }
+
+    public long getTotalNrOfRels() {
+        return getRelsPerNode() * nodesToCreate;
+    }
 }

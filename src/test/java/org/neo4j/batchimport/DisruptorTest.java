@@ -39,6 +39,13 @@ import static org.neo4j.helpers.collection.MapUtil.stringMap;
 // relationships, similar to properties
 // sorted by outgoing from node
 
+// two phase approach:
+// store first non-own rel-id for node-record in a suitable structure (it is actually a queue that can be emptied from the beginning)
+// start with a CHM
+// collect per node: last real rel-id==prevId, each of the "to be updated" rel-id's w/ direction & typeInt
+// convert that into a sorted file (by rel-id, or block based) of: typeInt, prevId, nextId, direction
+// write it in parallel to the rel-file using direct offsets
+
 @Ignore
 public class DisruptorTest {
 
@@ -51,7 +58,7 @@ public class DisruptorTest {
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         FileUtils.deleteRecursively(new File(STORE_DIR));
-        final DisruptorBatchInserter inserter = new DisruptorBatchInserter(STORE_DIR, config(), NODES_TO_CREATE, new TestNodeStructFactory());
+        final DisruptorBatchInserter inserter = new DisruptorBatchInserter(STORE_DIR, config(), NODES_TO_CREATE, new TestNodeStructFactory(NODES_TO_CREATE));
         inserter.init();
         long time = System.currentTimeMillis();
         try {
@@ -92,9 +99,14 @@ public class DisruptorTest {
         private int age;
         private int weight;
         private int type;
+        private final long nodesToCreate;
 
         static {
             for (int i = 0; i < MAX_RELS_PER_NODE; i++) TestNodeStructFactory.REL_OFFSETS[i] = 1 << 2 * i;
+        }
+
+        public TestNodeStructFactory(long nodesToCreate) {
+            this.nodesToCreate = nodesToCreate;
         }
 
         @Override
@@ -138,6 +150,10 @@ public class DisruptorTest {
         @Override
         public int getMaxRelsPerNode() {
             return MAX_RELS_PER_NODE;
+        }
+
+        public long getTotalNrOfRels() {
+            return getRelsPerNode() * nodesToCreate;
         }
     }
 }

@@ -47,7 +47,7 @@ public class DisruptorBatchInserter {
     public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
         final int minBufferBits = 18; // (int) (Math.log(nodesToCreate / 100) / Math.log(2));
-        RING_SIZE = 1 << Math.min(minBufferBits,18);
+        RING_SIZE = 1 << 14; //Math.min(minBufferBits,18);
         System.out.println("Ring size "+RING_SIZE);
         this.config = config;
         this.nodesToCreate = nodesToCreate;
@@ -82,7 +82,7 @@ public class DisruptorBatchInserter {
         //nodeWriter = new NodeFileWriteHandler(new File(nodeStore.getStorageFileName()));
         nodeWriter = new NodeWriteRecordHandler(neoStore.getNodeStore());
         propertyWriter = new PropertyWriteRecordHandler(neoStore.getPropertyStore());
-        relationshipWriter = new RelationshipWriteHandler(new RelationshipRecordWriter(neoStore.getRelationshipStore()));
+        relationshipWriter = new RelationshipWriteHandler(new RelationshipRecordWriter(neoStore.getRelationshipStore()), nodeStructFactory.getTotalNrOfRels());
         //relationshipWriter = new RelationshipWriteHandler(new RelationshipFileWriter(new File(neoStore.getRelationshipStore().getStorageFileName())));
     }
 

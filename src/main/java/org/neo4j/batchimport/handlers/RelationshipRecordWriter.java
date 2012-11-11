@@ -14,6 +14,8 @@ import java.io.IOException;
 public class RelationshipRecordWriter implements RelationshipWriter {
     private final RelationshipStore relationshipStore;
 
+    volatile long created, updated;
+    
     public RelationshipRecordWriter(RelationshipStore relationshipStore) {
         this.relationshipStore = relationshipStore;
     }
@@ -21,6 +23,7 @@ public class RelationshipRecordWriter implements RelationshipWriter {
     @Override
     public void create(long nodeId, NodeStruct event, Relationship relationship, long prevId, long nextId) {
         updateRecord(createRecord(nodeId, relationship,prevId,nextId));
+        created++;
     }
 
     @Override
@@ -34,6 +37,7 @@ public class RelationshipRecordWriter implements RelationshipWriter {
             record.setSecondNextRel(nextId);
         }
         updateRecord(record);
+        updated++;
     }
 
     private void updateRecord(RelationshipRecord record) {
@@ -71,5 +75,10 @@ public class RelationshipRecordWriter implements RelationshipWriter {
         }
         relRecord.setNextProp(relationship.firstPropertyId);
         return relRecord;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("RelationshipRecordWriter created %d updated %d %n",created,updated);
     }
 }

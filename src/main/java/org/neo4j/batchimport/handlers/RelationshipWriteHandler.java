@@ -1,7 +1,6 @@
 package org.neo4j.batchimport.handlers;
 
 import com.lmax.disruptor.EventHandler;
-import org.neo4j.batchimport.Utils;
 import org.neo4j.batchimport.collections.CompactLongRecord;
 import org.neo4j.batchimport.collections.ConcurrentLongReverseRelationshipMap;
 import org.neo4j.batchimport.collections.ReverseRelationshipMap;
@@ -9,7 +8,7 @@ import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.batchimport.structs.Relationship;
 import org.neo4j.kernel.impl.nioneo.store.Record;
 
-import java.io.IOException;
+import java.io.*;
 
 /**
 * @author mh
@@ -22,9 +21,11 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
         // store reverse node-id to rel-id for future updates of relationship-records
     // todo reuse and pool the CompactLongRecords, so we can skip IntArray creation
     final ReverseRelationshipMap futureModeRelIdQueue = new ConcurrentLongReverseRelationshipMap();
+    private final RelationshipUpdateCache cache;
 
-    public RelationshipWriteHandler(RelationshipWriter relationshipWriter) {
+    public RelationshipWriteHandler(RelationshipWriter relationshipWriter, final long totalNrOfRels) {
         this.relationshipWriter = relationshipWriter;
+        cache = new RelationshipUpdateCache(relationshipWriter, totalNrOfRels);
     }
 
     @Override
@@ -77,7 +78,9 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
         int count = relIds.length;
         for (int i = 0; i < count; i++) {
             long nextId = i+1 < count ? relIds[i + 1] : followingNextRelationshipId;
-            relationshipWriter.update(relIds[i], outgoing, prevId, nextId);
+
+            cache.update(relIds[i], outgoing, prevId, nextId);
+            //relationshipWriter.update(relIds[i], outgoing, prevId, nextId);
             prevId = relIds[i];
             counter++;
         }
@@ -86,10 +89,11 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
 
     @Override
     public String toString() {
-        return "rel-record-writer  " + counter + " "+relationshipWriter;
+        return "rel-record-writer  " + counter + " \n"+relationshipWriter+" "+cache;
     }
     public void close() {
         try {
+            cache.close();
             relationshipWriter.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
