@@ -25,7 +25,7 @@ public class PropertyWriteRecordHandler implements EventHandler<NodeStruct> {
         for (int i = 0; i < event.relationshipCount; i++) {
             writePropertyRecords(event.getRelationship(i));
         }
-        if (endOfBatch) propStore.flushAll();
+        // if (endOfBatch) propStore.flushAll();
     }
 
     private boolean writePropertyRecords(PropertyHolder holder) {

@@ -5,6 +5,6 @@ package org.neo4j.batchimport.collections;
 * @since 27.10.12
 */
 public interface ReverseRelationshipMap {
-     void add(long nodeId, long relId, boolean outgoing);
-     CompactLongRecord retrieve(long nodeId);
+     void add(long nodeId, long relId, boolean outgoing, int typeId);
+     CompactLongRecord2 retrieve(long nodeId);
 }

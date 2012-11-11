@@ -12,6 +12,7 @@ import org.neo4j.kernel.impl.nioneo.store.NeoStore;
 import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 
+import java.io.File;
 import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
@@ -43,6 +44,7 @@ public class DisruptorBatchInserter {
     private final long nodesToCreate;
     private final NodeStructFactory nodeStructFactory;
     private volatile boolean stop;
+    private RelationshipUpdateHandler relationshipUpdateHandler;
 
     public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
@@ -70,7 +72,7 @@ public class DisruptorBatchInserter {
                 handleEventsWith(propertyMappingHandlers).
                 then(propertyRecordCreatorHandler, relationshipIdHandler).
                 then(relationshipWriter, propertyWriter).
-                then(nodeWriter);
+                then(nodeWriter, relationshipUpdateHandler);
     }
 
     private void createHandlers(NeoStore neoStore, NodeStructFactory nodeStructFactory) {
@@ -83,6 +85,8 @@ public class DisruptorBatchInserter {
         nodeWriter = new NodeWriteRecordHandler(neoStore.getNodeStore());
         propertyWriter = new PropertyWriteRecordHandler(neoStore.getPropertyStore());
         relationshipWriter = new RelationshipWriteHandler(new RelationshipRecordWriter(neoStore.getRelationshipStore()));
+        relationshipUpdateHandler = new RelationshipUpdateHandler(new File(neoStore.getRelationshipStore().getStorageFileName()));
+        
         //relationshipWriter = new RelationshipWriteHandler(new RelationshipFileWriter(new File(neoStore.getRelationshipStore().getStorageFileName())));
     }
 
@@ -95,11 +99,12 @@ public class DisruptorBatchInserter {
             NodeStruct nodeStruct = ringBuffer.get(sequence).init();
 
             nodeStructFactory.fillStruct(nodeId,nodeStruct);
-
+/*
             if (nodeId % (nodesToCreate / 100) == 0) {
                 log.info(nodeId + " " + (System.currentTimeMillis()-time)+" ms.");
                 time = System.currentTimeMillis();
             }
+*/
             ringBuffer.publish(sequence);
         }
     }
