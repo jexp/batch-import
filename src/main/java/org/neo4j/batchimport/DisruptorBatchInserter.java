@@ -43,6 +43,7 @@ public class DisruptorBatchInserter {
     private final long nodesToCreate;
     private final NodeStructFactory nodeStructFactory;
     private volatile boolean stop;
+    private CleanupMemoryHandler cleanupMemoryHandler;
 
     public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
@@ -70,7 +71,7 @@ public class DisruptorBatchInserter {
                 handleEventsWith(propertyMappingHandlers).
                 then(propertyRecordCreatorHandler, relationshipIdHandler).
                 then(relationshipWriter, propertyWriter).
-                then(nodeWriter);
+                then(nodeWriter,cleanupMemoryHandler);
     }
 
     private void createHandlers(NeoStore neoStore, NodeStructFactory nodeStructFactory) {
@@ -83,6 +84,7 @@ public class DisruptorBatchInserter {
         nodeWriter = new NodeWriteRecordHandler(neoStore.getNodeStore());
         propertyWriter = new PropertyWriteRecordHandler(neoStore.getPropertyStore());
         relationshipWriter = new RelationshipWriteHandler(new RelationshipRecordWriter(neoStore.getRelationshipStore()), nodeStructFactory.getTotalNrOfRels());
+        cleanupMemoryHandler = new CleanupMemoryHandler();
         //relationshipWriter = new RelationshipWriteHandler(new RelationshipFileWriter(new File(neoStore.getRelationshipStore().getStorageFileName())));
     }
 
@@ -96,7 +98,7 @@ public class DisruptorBatchInserter {
 
             nodeStructFactory.fillStruct(nodeId,nodeStruct);
 
-            if (nodeId % (nodesToCreate / 100) == 0) {
+            if (nodesToCreate>100 && nodeId % (nodesToCreate / 100) == 0) {
                 log.info(nodeId + " " + (System.currentTimeMillis()-time)+" ms.");
                 time = System.currentTimeMillis();
             }

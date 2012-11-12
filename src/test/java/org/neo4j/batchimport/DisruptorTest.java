@@ -52,7 +52,7 @@ public class DisruptorTest {
     private final static Logger log = Logger.getLogger(DisruptorBatchInserter.class);
 
     public static final String STORE_DIR = "target/test-db2";
-    public static final int NODES_TO_CREATE = 100 * 1000 * 1000 ;
+    public static final int NODES_TO_CREATE = 1000 * 1000 ;
     private static final boolean RUN_CHECK = true;
 
     @SuppressWarnings("unchecked")

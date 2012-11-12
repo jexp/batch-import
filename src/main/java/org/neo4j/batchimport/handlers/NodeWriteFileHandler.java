@@ -53,7 +53,7 @@ public class NodeWriteFileHandler implements EventHandler<NodeStruct> {
 
     private void writeRecord(NodeStruct record) throws IOException {
         //printNode(record);
-        long nextRel = record.nextRel;
+        long nextRel = record.firstRel;
         long nextProp = record.firstPropertyId;
 
         short relModifier = Record.NO_NEXT_RELATIONSHIP.is(nextRel) ? 0 : (short) ((nextRel & 0x700000000L) >> 31);

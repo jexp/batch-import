@@ -7,19 +7,19 @@ import java.nio.ByteBuffer;
  * @author mh
  * @since 10.11.12
  */
-public class RelationshipUpdateCache {
+public class RelationshipUpdateCache implements RelationshipUpdater {
     private static final int BUCKETS = 16;
-    public static final int RELS_PER_BUFFER = 20 * (1024 ^ 2);
-    private static final int CAPACITY = RELS_PER_BUFFER * (Short.SIZE + 3 * Integer.SIZE) /8;  // todo make it larger, about 1GB
+    public static final int RELS_PER_BUFFER =  20 * (1024 ^ 2);
+    private static final int CAPACITY = RELS_PER_BUFFER * (Short.SIZE + 3 * Integer.SIZE) /8;
 
     private volatile long added, written;
     private final ByteBuffer[] buffers;
 
-    private final RelationshipWriter relationshipWriter;
+    private final RelationshipUpdater relationshipUpdater;
     private final long shard;
 
-    public RelationshipUpdateCache(RelationshipWriter relationshipWriter, long total) {
-        this.relationshipWriter = relationshipWriter;
+    public RelationshipUpdateCache(RelationshipWriter relationshipUpdater, long total) {
+        this.relationshipUpdater = relationshipUpdater;
         this.buffers = createBuffers(BUCKETS, CAPACITY);
         shard = total / BUCKETS;
     }
@@ -32,7 +32,7 @@ public class RelationshipUpdateCache {
         return buffers;
     }
 
-    void update(long relId, boolean outgoing, long prevId, long nextId) throws IOException {
+    public void update(long relId, boolean outgoing, long prevId, long nextId) throws IOException {
         ByteBuffer buffer = selectBuffer(relId);
 
         addToBuffer(buffer, relId, outgoing, prevId, nextId);
@@ -58,7 +58,7 @@ public class RelationshipUpdateCache {
         long nextId = readIntAsLong(buffer, header>>6 & 0x07);
         boolean outgoing = (header & 0x0200   /*0010.0000*/) != 0;
 
-        relationshipWriter.update(relId,outgoing,prevId,nextId);
+        relationshipUpdater.update(relId, outgoing, prevId, nextId);
         written++;
     }
 
@@ -73,9 +73,9 @@ public class RelationshipUpdateCache {
         if (force || buffer.position()==buffer.limit()) {
             buffer.limit(buffer.position());
             buffer.position(0);
-            long time=System.currentTimeMillis();
+            // long time=System.currentTimeMillis();
             while (buffer.position()!=buffer.limit()) updateFromBuffer(buffer);
-            System.out.println("Flushed buffer "+idx(buffer)+" in "+(System.currentTimeMillis()-time)+" ms.");
+            // System.out.println("Flushed buffer "+idx(buffer)+" in "+(System.currentTimeMillis()-time)+" ms.");
             buffer.clear().limit(CAPACITY);
         }
     }

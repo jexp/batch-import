@@ -49,7 +49,7 @@ public class Utils {
     }
 
     private static String formatNode(NodeStruct record) {
-        return String.format("Node[%d] -> %d, .%d", record.id, record.nextRel, record.firstPropertyId);
+        return String.format("Node[%d] -> %d, .%d", record.id, record.firstRel, record.firstPropertyId);
     }
 
     private static String formatNode(NodeRecord record) {

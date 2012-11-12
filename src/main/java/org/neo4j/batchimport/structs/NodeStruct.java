@@ -1,6 +1,5 @@
 package org.neo4j.batchimport.structs;
 
-import org.neo4j.batchimport.collections.CompactLongRecord;
 import org.neo4j.kernel.impl.nioneo.store.Record;
 
 import java.util.ArrayList;
@@ -12,7 +11,7 @@ import java.util.List;
 */
 public class NodeStruct extends PropertyHolder {
     //long p1,p2,p3,p4,p5,p6,p7;
-    public volatile long nextRel = Record.NO_NEXT_RELATIONSHIP.intValue();
+    public volatile long firstRel = Record.NO_NEXT_RELATIONSHIP.intValue();
     //long o1,o2,o3,o4,o5,o6,o7;
 
     private final Relationship[] relationships;
@@ -39,7 +38,7 @@ public class NodeStruct extends PropertyHolder {
 
     public NodeStruct init() {
         super.init();
-        nextRel = Record.NO_NEXT_RELATIONSHIP.intValue();
+        firstRel = Record.NO_NEXT_RELATIONSHIP.intValue();
         clearRelationshipInfo();
         return this;
     }
