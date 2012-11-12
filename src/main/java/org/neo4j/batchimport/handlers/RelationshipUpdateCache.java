@@ -9,7 +9,8 @@ import java.nio.ByteBuffer;
  */
 public class RelationshipUpdateCache {
     private static final int BUCKETS = 16;
-    private static final int CAPACITY = 100*(1024^2)*(Short.SIZE + 3*Integer.SIZE)/8;
+    public static final int RELS_PER_BUFFER = 20 * (1024 ^ 2);
+    private static final int CAPACITY = RELS_PER_BUFFER * (Short.SIZE + 3 * Integer.SIZE) /8;  // todo make it larger, about 1GB
 
     private volatile long added, written;
     private final ByteBuffer[] buffers;
@@ -72,9 +73,18 @@ public class RelationshipUpdateCache {
         if (force || buffer.position()==buffer.limit()) {
             buffer.limit(buffer.position());
             buffer.position(0);
+            long time=System.currentTimeMillis();
             while (buffer.position()!=buffer.limit()) updateFromBuffer(buffer);
+            System.out.println("Flushed buffer "+idx(buffer)+" in "+(System.currentTimeMillis()-time)+" ms.");
             buffer.clear().limit(CAPACITY);
         }
+    }
+
+    private int idx(ByteBuffer buffer) {
+        for (int i = 0; i < BUCKETS; i++) {
+            if (buffer==buffers[i]) return i;
+        }
+        return -1;
     }
 
     private long readIntAsLong(ByteBuffer buffer, int mod) {
