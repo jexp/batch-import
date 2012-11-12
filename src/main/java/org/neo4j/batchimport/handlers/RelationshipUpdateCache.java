@@ -2,6 +2,7 @@ package org.neo4j.batchimport.handlers;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.util.Arrays;
 
 /**
  * @author mh
@@ -10,18 +11,51 @@ import java.nio.ByteBuffer;
 public class RelationshipUpdateCache implements RelationshipUpdater {
     private static final int BUCKETS = 16;
     public static final int RELS_PER_BUFFER =  20 * (1024 ^ 2);
-    private static final int CAPACITY = RELS_PER_BUFFER * (Short.SIZE + 3 * Integer.SIZE) /8;
+    private static final int RECORD_SIZE = (Short.SIZE + 3 * Integer.SIZE) / 8;
+    private static final int CAPACITY = RELS_PER_BUFFER * RECORD_SIZE;
 
-    private volatile long added, written;
     private final ByteBuffer[] buffers;
 
     private final RelationshipUpdater relationshipUpdater;
     private final long shard;
+    private Stats[] stats;
 
+    static class Stats {
+        int idx;
+        long added, written;
+        long min=Long.MAX_VALUE,max=Long.MIN_VALUE;
+
+        Stats(int idx) {
+            this.idx = idx;
+        }
+
+        void add(long relId) {
+            if (min>relId) min=relId;
+            if (max<relId) max=relId;
+            added++;
+        }
+        void written(long count) {
+            written+=count;
+        }
+
+        @Override
+        public String toString() {
+            return String.format("buffer %d min %d max %d added %d written %d%n",idx,min==Long.MAX_VALUE?-1:min,max==Long.MIN_VALUE?-1:max,added,written);
+        }
+    }
     public RelationshipUpdateCache(RelationshipWriter relationshipUpdater, long total) {
         this.relationshipUpdater = relationshipUpdater;
         this.buffers = createBuffers(BUCKETS, CAPACITY);
+        this.stats = createStats();
         shard = total / BUCKETS;
+    }
+
+    private Stats[] createStats() {
+        Stats[] stats = new Stats[BUCKETS];
+        for (int i = 0; i < BUCKETS; i++) {
+            stats[i]=new Stats(i);
+        }
+        return stats;
     }
 
     private ByteBuffer[] createBuffers(final int buckets, final int capacity) {
@@ -36,7 +70,6 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
         ByteBuffer buffer = selectBuffer(relId);
 
         addToBuffer(buffer, relId, outgoing, prevId, nextId);
-        added++;
         flushBuffer(buffer,false);
     }
 
@@ -59,12 +92,12 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
         boolean outgoing = (header & 0x0200   /*0010.0000*/) != 0;
 
         relationshipUpdater.update(relId, outgoing, prevId, nextId);
-        written++;
     }
 
     private ByteBuffer selectBuffer(long relId) {
         int idx= (int) (relId / shard);
         idx = Math.max(0,Math.min(BUCKETS-1,idx));
+        stats[idx].add(relId);
         return buffers[idx];
     }
 
@@ -75,6 +108,7 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
             buffer.position(0);
             // long time=System.currentTimeMillis();
             while (buffer.position()!=buffer.limit()) updateFromBuffer(buffer);
+            stats[idx(buffer)].written(buffer.position()/RECORD_SIZE);
             // System.out.println("Flushed buffer "+idx(buffer)+" in "+(System.currentTimeMillis()-time)+" ms.");
             buffer.clear().limit(CAPACITY);
         }
@@ -101,6 +135,6 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
 
     @Override
     public String toString() {
-        return String.format("RelationshipUpdateCache added %d written %d %n",added,written);
+        return String.format("RelationshipUpdateCache buffer size %d %n stats %s %n", shard, Arrays.toString(stats));
     }
 }
