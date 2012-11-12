@@ -4,6 +4,7 @@ import org.apache.log4j.Logger;
 import org.junit.Ignore;
 import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.consistency.ConsistencyCheckTool;
+import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 
@@ -54,6 +55,7 @@ public class DisruptorTest {
     public static final String STORE_DIR = "target/test-db2";
     public static final int NODES_TO_CREATE = 1000 * 1000 ;
     private static final boolean RUN_CHECK = true;
+    private static final File PROP_FILE = new File("batch.properties");
 
     @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
@@ -74,12 +76,20 @@ public class DisruptorTest {
     }
 
     private static Map<String, String> config() {
+        if (PROP_FILE.exists()) {
+            try {
+                return MapUtil.load(PROP_FILE);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
         return stringMap("use_memory_mapped_buffers", "true",
         //"dump_configuration", "true",
         "cache_type", "none",
-        "neostore.nodestore.db.mapped_memory", "1G",
-        "neostore.propertystore.db.mapped_memory", "2G",
-        "neostore.relationshipstore.db.mapped_memory", "5G"
+        "neostore.nodestore.db.mapped_memory", "2G",
+        "neostore.propertystore.db.mapped_memory", "5G",
+        "neostore.relationshipstore.db.mapped_memory", "20G",
+        "neostore.propertystore.db.strings.mapped_memory","2G"
 );
     }
 
