@@ -48,7 +48,7 @@ public class DisruptorBatchInserter {
 
     public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
-        final int minBufferBits = 10; // (int) (Math.log(nodesToCreate / 100) / Math.log(2));
+        final int minBufferBits = 18; // (int) (Math.log(nodesToCreate / 100) / Math.log(2));
         RING_SIZE = 1 << minBufferBits; //Math.min(minBufferBits,18);
         System.out.println("Ring size "+RING_SIZE);
         this.config = config;
