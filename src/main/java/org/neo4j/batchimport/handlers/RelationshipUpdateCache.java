@@ -1,6 +1,10 @@
 package org.neo4j.batchimport.handlers;
 
+import edu.ucla.sspace.util.primitive.IntSet;
+import edu.ucla.sspace.util.primitive.TroveIntSet;
+
 import java.io.IOException;
+import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 
@@ -40,7 +44,7 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
 
         @Override
         public String toString() {
-            return String.format("buffer %d min %d max %d added %d written %d%n",idx,min==Long.MAX_VALUE?-1:min,max==Long.MIN_VALUE?-1:max,added,written);
+            return String.format("buffer %d min %d max %d added %d written %d %n",idx,min==Long.MAX_VALUE?-1:min,max==Long.MIN_VALUE?-1:max,added,written);
         }
     }
     public RelationshipUpdateCache(RelationshipWriter relationshipUpdater, long total) {
@@ -66,24 +70,37 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
         return buffers;
     }
 
-    public void update(long relId, boolean outgoing, long prevId, long nextId) throws IOException {
+    public boolean update(long relId, boolean outgoing, long prevId, long nextId) throws IOException {
         ByteBuffer buffer = selectBuffer(relId);
-
+        // final int position = buffer.position();
+        // final int limit = buffer.limit();
+        // System.out.printf("rel %d buffer pos %d buffer limit %d pos==limit %s %n",relId,buffer.position(),buffer.limit(),buffer.position()==buffer.limit());
+        flushBuffer(buffer, false);
+        // final int posAfterFlush = buffer.position();
         addToBuffer(buffer, relId, outgoing, prevId, nextId);
-        flushBuffer(buffer,false);
+        // final int posAfterAdd = buffer.position();
+        return true;
     }
 
     private void addToBuffer(ByteBuffer buffer, long relId, boolean outgoing, long prevId, long nextId) {
+        // final int position = buffer.position();
         int relIdMod = (int)((relId & 0x700000000L) >> 31); //0..2
         int prevIdMod = prevId <= 0 ? 0 : (int)((prevId & 0x700000000L) >> 28); //3..5
         int nextIdMod = nextId <= 0 ? 0 : (int)((nextId & 0x700000000L) >> 25); //6..8
         final int outgoingMod = (outgoing ? 1 : 0) << 9;
         //                     x        x|xx         xxx       xxx
         short header = (short) (outgoingMod | nextIdMod | prevIdMod |relIdMod);
-        buffer.putShort(header).putInt((int)relId).putInt((int) prevId).putInt((int) nextId);
+        try {
+            buffer.putShort(header);
+            buffer.putInt((int)relId);
+            buffer.putInt((int) prevId);
+            buffer.putInt((int) nextId);
+        } catch (BufferOverflowException e) {
+            throw e;
+        }
     }
 
-    private void updateFromBuffer(ByteBuffer buffer) throws IOException {
+    private boolean updateFromBuffer(ByteBuffer buffer) throws IOException {
         //                      x        x|xx         xxx       xxx
         short header = buffer.getShort();
         long relId =  readIntAsLong(buffer,header    & 0x07);
@@ -91,7 +108,7 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
         long nextId = readIntAsLong(buffer, header>>6 & 0x07);
         boolean outgoing = (header & 0x0200   /*0010.0000*/) != 0;
 
-        relationshipUpdater.update(relId, outgoing, prevId, nextId);
+        return relationshipUpdater.update(relId, outgoing, prevId, nextId);
     }
 
     private ByteBuffer selectBuffer(long relId) {
@@ -106,12 +123,36 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
         if (force || buffer.position()==buffer.limit()) {
             buffer.limit(buffer.position());
             buffer.position(0);
-            // long time=System.currentTimeMillis();
-            while (buffer.position()!=buffer.limit()) updateFromBuffer(buffer);
-            stats[idx(buffer)].written(buffer.position()/RECORD_SIZE);
-            // System.out.println("Flushed buffer "+idx(buffer)+" in "+(System.currentTimeMillis()-time)+" ms.");
-            buffer.clear().limit(CAPACITY);
+            IntSet failedPositions = new TroveIntSet(100);
+            while (buffer.position() != buffer.limit()) {
+                final int position = buffer.position();
+                if (!updateFromBuffer(buffer)) failedPositions.add(position);
+            }
+            System.out.println("failedPositions.size() = " + failedPositions.size());
+            stats[idx(buffer)].written(buffer.position()/RECORD_SIZE - failedPositions.size());
+            buffer.limit(CAPACITY);
+            int initialPos=failedPositions.isEmpty() ? 0 : copyFailedPositions(buffer, failedPositions);
+            buffer.position(initialPos);
         }
+    }
+
+    private int copyFailedPositions(ByteBuffer buffer, IntSet failedPositions) {
+        byte[] tmp=new byte[RECORD_SIZE];
+        int writePos=0;
+        for (Integer pos : failedPositions) {
+            buffer.position(pos);
+            buffer.get(tmp);
+            buffer.position(writePos);
+            buffer.put(tmp);
+            writePos=buffer.position();
+        }
+        try {
+            // give the relationship-writer time to write out the relationships
+            if (writePos==buffer.limit()) Thread.sleep(2000);
+        } catch (InterruptedException e) {
+            throw new RuntimeException(e);
+        }
+        return writePos;
     }
 
     private int idx(ByteBuffer buffer) {

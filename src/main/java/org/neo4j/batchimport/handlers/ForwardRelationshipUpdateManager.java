@@ -17,7 +17,7 @@ public class ForwardRelationshipUpdateManager {
         volatile boolean outgoing;
         private final long firstId;
 
-        public RelationshipUpdateInfo(long firstId) { // todo replace by prevId
+        public RelationshipUpdateInfo(long firstId) { // todo replace by prevId??
             this.firstId = firstId;
         }
 

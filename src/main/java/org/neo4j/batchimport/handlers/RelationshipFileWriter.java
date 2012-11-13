@@ -103,7 +103,7 @@ public class RelationshipFileWriter implements RelationshipWriter {
      * only works for prevId & nextId <= MAXINT
      */
     @Override
-    public void update(long id, boolean outgoing, long prevId, long nextId) throws IOException {
+    public boolean update(long id, boolean outgoing, long prevId, long nextId) throws IOException {
         flushBuffer(true);
         long position = id * RelationshipStore.RECORD_SIZE + 1 + 4 + 4 + 4; // inUse, firstNode, secondNode, relType
 
@@ -120,6 +120,7 @@ public class RelationshipFileWriter implements RelationshipWriter {
 
         updated += channel.write(updateBuffer);
         channel.position(oldPos);
+        return true;
     }
 
     @Override

@@ -7,5 +7,5 @@ import java.io.IOException;
  * @since 11.11.12
  */
 public interface RelationshipUpdater {
-    void update(long relId, boolean outgoing, long prevId, long nextId) throws IOException;
+    boolean update(long relId, boolean outgoing, long prevId, long nextId) throws IOException;
 }

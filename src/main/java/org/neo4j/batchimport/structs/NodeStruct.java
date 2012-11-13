@@ -10,9 +10,9 @@ import java.util.List;
 * @since 27.10.12
 */
 public class NodeStruct extends PropertyHolder {
-    //long p1,p2,p3,p4,p5,p6,p7;
     public volatile long firstRel = Record.NO_NEXT_RELATIONSHIP.intValue();
-    //long o1,o2,o3,o4,o5,o6,o7;
+
+    public volatile long prevId;
 
     private final Relationship[] relationships;
     public final List<Relationship> moreRelationships = new ArrayList<Relationship>();
@@ -39,6 +39,7 @@ public class NodeStruct extends PropertyHolder {
     public NodeStruct init() {
         super.init();
         firstRel = Record.NO_NEXT_RELATIONSHIP.intValue();
+        prevId = Record.NO_PREV_RELATIONSHIP.intValue();
         clearRelationshipInfo();
         return this;
     }

@@ -44,6 +44,7 @@ public class DisruptorBatchInserter {
     private final NodeStructFactory nodeStructFactory;
     private volatile boolean stop;
     private CleanupMemoryHandler cleanupMemoryHandler;
+    private ForwardRelationshipUpdateHandler forwardRelationshipUpdateHandler;
 
     public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
@@ -70,8 +71,9 @@ public class DisruptorBatchInserter {
         disruptor.
                 handleEventsWith(propertyMappingHandlers).
                 then(propertyRecordCreatorHandler, relationshipIdHandler).
-                then(relationshipWriter, propertyWriter).
-                then(nodeWriter,cleanupMemoryHandler);
+                then(forwardRelationshipUpdateHandler, propertyWriter).
+                then(relationshipWriter, nodeWriter).
+                then(cleanupMemoryHandler);
     }
 
     private void createHandlers(NeoStore neoStore, NodeStructFactory nodeStructFactory) {
@@ -83,7 +85,9 @@ public class DisruptorBatchInserter {
         //nodeWriter = new NodeFileWriteHandler(new File(nodeStore.getStorageFileName()));
         nodeWriter = new NodeWriteRecordHandler(neoStore.getNodeStore());
         propertyWriter = new PropertyWriteRecordHandler(neoStore.getPropertyStore());
-        relationshipWriter = new RelationshipWriteHandler(new RelationshipRecordWriter(neoStore.getRelationshipStore()), nodeStructFactory.getTotalNrOfRels());
+        final RelationshipRecordWriter relationshipRecordWriter = new RelationshipRecordWriter(neoStore.getRelationshipStore());
+        relationshipWriter = new RelationshipWriteHandler(relationshipRecordWriter, nodeStructFactory.getTotalNrOfRels());
+        forwardRelationshipUpdateHandler = new ForwardRelationshipUpdateHandler(relationshipRecordWriter, nodeStructFactory.getTotalNrOfRels());
         cleanupMemoryHandler = new CleanupMemoryHandler();
         //relationshipWriter = new RelationshipWriteHandler(new RelationshipFileWriter(new File(neoStore.getRelationshipStore().getStorageFileName())));
     }
@@ -111,6 +115,7 @@ public class DisruptorBatchInserter {
 
         nodeWriter.close();
         propertyWriter.close();
+        forwardRelationshipUpdateHandler.close();
         relationshipWriter.close();
 
         inserter.shutdown();

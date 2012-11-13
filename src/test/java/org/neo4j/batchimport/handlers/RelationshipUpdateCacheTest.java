@@ -36,12 +36,13 @@ public class RelationshipUpdateCacheTest {
         final AtomicInteger count=new AtomicInteger();
         final RelationshipUpdateCache cache = new RelationshipUpdateCache(new TestRelationshipWriter() {
             @Override
-            public void update(long _relId, boolean _outgoing, long _prevId, long _nextId) throws IOException {
+            public boolean update(long _relId, boolean _outgoing, long _prevId, long _nextId) throws IOException {
                 assertEquals("relId", 1,_relId);
                 assertEquals("outgoing", true,_outgoing);
                 assertEquals("prevId", -1,_prevId);
                 assertEquals("nextId", 0x01FFFFFFFFL,_nextId);
                 count.incrementAndGet();
+                return true;
             }
         },1000);
         final int cnt = RelationshipUpdateCache.RELS_PER_BUFFER;
@@ -53,23 +54,24 @@ public class RelationshipUpdateCacheTest {
 
         // last in buffer should cause flush
         cache.update(1,true,-1,0x01FFFFFFFFL);
-        assertEquals(cnt,count.get());
+        assertEquals(cnt, count.get());
         // one more shouldn't cause a new flush
         cache.update(1,true,-1,0x01FFFFFFFFL);
-        assertEquals(cnt,count.get());
+        assertEquals(cnt, count.get());
         // close should cause flush
         cache.close();
-        assertEquals(cnt+1,count.get());
+        assertEquals(cnt + 1, count.get());
     }
 
     private void assertAddRelationship(final long relId, final boolean outgoing, final long prevId, final long nextId) throws IOException {
         final RelationshipUpdateCache cache = new RelationshipUpdateCache(new TestRelationshipWriter() {
             @Override
-            public void update(long _relId, boolean _outgoing, long _prevId, long _nextId) throws IOException {
+            public boolean update(long _relId, boolean _outgoing, long _prevId, long _nextId) throws IOException {
                 assertEquals("relId", relId,_relId);
                 assertEquals("outgoing", outgoing,_outgoing);
                 assertEquals("prevId", prevId,_prevId);
                 assertEquals("nextId", nextId,_nextId);
+                return true;
             }
         },1000);
 
@@ -77,16 +79,14 @@ public class RelationshipUpdateCacheTest {
         cache.close();
     }
 
-    private static class TestRelationshipWriter implements RelationshipWriter {
+    private static abstract class TestRelationshipWriter implements RelationshipWriter {
         @Override
         public void create(long nodeId, NodeStruct event, Relationship relationship, long prevId, long nextId) throws IOException {
 
         }
 
         @Override
-        public void update(long relId, boolean outgoing, long prevId, long nextId) throws IOException {
-
-        }
+        public abstract boolean update(long relId, boolean outgoing, long prevId, long nextId) throws IOException;
 
         @Override
         public void flush() throws IOException {

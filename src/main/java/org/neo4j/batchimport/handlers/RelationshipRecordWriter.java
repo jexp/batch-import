@@ -27,8 +27,9 @@ public class RelationshipRecordWriter implements RelationshipWriter {
     }
 
     @Override
-    public void update(long relId, boolean outgoing, long prevId, long nextId) {
-        RelationshipRecord record = relationshipStore.getRecord(relId);
+    public boolean update(long relId, boolean outgoing, long prevId, long nextId) {
+        RelationshipRecord record = relationshipStore.getLightRel(relId);
+        if (record==null) return false;
         if (outgoing) {
             record.setFirstPrevRel(prevId);
             record.setFirstNextRel(nextId);
@@ -38,6 +39,7 @@ public class RelationshipRecordWriter implements RelationshipWriter {
         }
         updateRecord(record);
         updated++;
+        return true;
     }
 
     private void updateRecord(RelationshipRecord record) {

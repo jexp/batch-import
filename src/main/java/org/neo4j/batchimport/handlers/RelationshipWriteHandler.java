@@ -15,24 +15,19 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
     private long counter;
     private final RelationshipWriter relationshipWriter;
 
-        // store reverse node-id to rel-id for future updates of relationship-records
-    // todo reuse and pool the CompactLongRecords, so we can skip IntArray creation
-    // final ReverseRelationshipMap futureModeRelIdQueue = new ConcurrentLongReverseRelationshipMap();
-    ForwardRelationshipUpdateManager futureNodeRelInfo;
-    private final RelationshipUpdateCache cache;
+    // ForwardRelationshipUpdateManager futureNodeRelInfo;
+    // private final RelationshipUpdateCache cache;
 
     public RelationshipWriteHandler(RelationshipWriter relationshipWriter, final long totalNrOfRels) {
         this.relationshipWriter = relationshipWriter;
-        cache = new RelationshipUpdateCache(relationshipWriter, totalNrOfRels);
-        futureNodeRelInfo = new ForwardRelationshipUpdateManager(cache);
+//        cache = new RelationshipUpdateCache(relationshipWriter, totalNrOfRels);
+//        futureNodeRelInfo = new ForwardRelationshipUpdateManager(cache);
     }
 
     @Override
     public void onEvent(NodeStruct event, long nodeId, boolean endOfBatch) throws Exception {
 
-        // CompactLongRecord relationshipsToUpdate = futureModeRelIdQueue.retrieve(nodeId);
-
-        event.firstRel = firstRelationshipId(event,futureNodeRelInfo.getFirstRelId(nodeId));
+        // event.firstRel = firstRelationshipId(event,futureNodeRelInfo.getFirstRelId(nodeId));
 
         if (Record.NO_NEXT_RELATIONSHIP.is(event.firstRel)) return;
 
@@ -40,19 +35,19 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
 
         relationshipWriter.start(maxRelationshipId);
 
-
         int count = event.relationshipCount;
 
         long followingNextRelationshipId = Record.NO_NEXT_RELATIONSHIP.intValue();
 
-        long prevId = futureNodeRelInfo.done(nodeId, getFirstOwnRelationshipId(event));
+        // long prevId = futureNodeRelInfo.done(nodeId, getFirstOwnRelationshipId(event));
+        long prevId = event.prevId;
 
         for (int i = 0; i < count; i++) {
             long nextId = i+1 < count ? event.getRelationship(i+1).id : followingNextRelationshipId;
             Relationship relationship = event.getRelationship(i);
             relationshipWriter.create(nodeId,event, relationship, prevId, nextId);
             prevId = relationship.id;
-            storeFutureRelId(nodeId, relationship,prevId);
+            // storeFutureRelId(nodeId, relationship,prevId);
 
             counter++;
         }
@@ -62,18 +57,18 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
 
     @Override
     public String toString() {
-        return "rel-record-writer  " + counter + " \n"+relationshipWriter+" "+cache;
+        return "rel-record-writer  " + counter + " \n"+relationshipWriter; // +" "+cache;
     }
     public void close() {
         try {
-            cache.close();
+            // cache.close();
             relationshipWriter.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
 
-
+   /*
     private void storeFutureRelId(long nodeId, Relationship relationship, long relId) throws IOException {
         long other = relationship.other();
         if (other < nodeId) return;
@@ -90,6 +85,7 @@ public class RelationshipWriteHandler implements EventHandler<NodeStruct> {
         if (event.relationshipCount == 0) return Record.NO_PREV_RELATIONSHIP.intValue();
         return event.getRelationship(0).id;
     }
+   */
 
 
     private long maxRelationshipId(NodeStruct event) {
