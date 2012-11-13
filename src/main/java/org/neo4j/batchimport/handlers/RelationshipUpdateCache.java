@@ -14,7 +14,7 @@ import java.util.Arrays;
  */
 public class RelationshipUpdateCache implements RelationshipUpdater {
     private static final int BUCKETS = 16;
-    public static final int RELS_PER_BUFFER =  20 * (1024 ^ 2);
+    public static final int RELS_PER_BUFFER =  20 * (1024 * 1024);
     private static final int RECORD_SIZE = (Short.SIZE + 3 * Integer.SIZE) / 8;
     private static final int CAPACITY = RELS_PER_BUFFER * RECORD_SIZE;
 

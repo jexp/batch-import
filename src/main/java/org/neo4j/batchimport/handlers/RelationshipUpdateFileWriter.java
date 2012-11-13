@@ -18,7 +18,7 @@ import java.nio.channels.FileChannel;
 // or do multiple passes on the file, allocate a 30G rel-mmio and write the first 1G, then the second 1G etc. rels
 public class RelationshipUpdateFileWriter {
     private static final int RECORD_SIZE = (Long.SIZE * 3 + Byte.SIZE) / 8;
-    public static final int CAPACITY = (1024 ^ 2) * RECORD_SIZE;
+    public static final int CAPACITY = (1024 * 1024) * RECORD_SIZE;
     FileOutputStream os;
     int eob=0;
     private final FileChannel channel;

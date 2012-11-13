@@ -15,7 +15,7 @@ import java.nio.channels.FileChannel;
 * @since 27.10.12
 */
 public class NodeWriteFileHandler implements EventHandler<NodeStruct> {
-    public static final int CAPACITY = (1024 ^ 2);
+    public static final int CAPACITY = (1024 * 1024);
     FileOutputStream os;
     int eob=0;
     private final FileChannel channel;
