@@ -1,10 +1,10 @@
 package org.neo4j.batchimport;
 
 import org.apache.log4j.Logger;
-import org.neo4j.batchimport.importer.RowData;
 import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.batchimport.structs.PropertyHolder;
 import org.neo4j.batchimport.structs.Relationship;
+import org.neo4j.batchimport.utils.Chunker;
 import org.neo4j.batchimport.utils.Params;
 import org.neo4j.consistency.ConsistencyCheckTool;
 import org.neo4j.helpers.collection.MapUtil;
@@ -13,6 +13,7 @@ import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 
 import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
@@ -65,16 +66,18 @@ public class ParallelImporter implements NodeStructFactory {
     private final int propsPerRel;
     private Report report;
     private BufferedReader nodesReader;
-    private RowData nodesData;
     private BufferedReader relsReader;
-    private RowData relsData;
     private String[] relTypes;
     private int[] nodePropIds;
     private int[] relPropIds;
-    private Object[] relHeader;
     private int[] relTypeIds;
     private final int relTypesCount;
-    private Object[] relRowData;
+    private Chunker nodeChunker;
+    private Chunker relChunker;
+    private int nodePropCount;
+    private int relPropCount;
+    private long from = -1;
+    private long to = -1;
 
     public ParallelImporter(File graphDb, File nodesFile, File relationshipsFile,
                             long nodesToCreate, int propsPerNode, int relsPerNode, int maxRelsPerNode, int propsPerRel, String[] relTypes) {
@@ -189,17 +192,19 @@ public class ParallelImporter implements NodeStructFactory {
 
     private void initReader() throws IOException {
         nodesReader = new BufferedReader(new FileReader(nodesFile), MEGABYTE);
-        nodesData = new RowData(nodesReader.readLine(), "\t", 0);
+        nodeChunker = new Chunker(nodesReader, '\t');
 
-        relHeader = new Object[3];
         relsReader = new BufferedReader(new FileReader(relationshipsFile), MEGABYTE);
-        relsData = new RowData(relsReader.readLine(), "\t", 3);
+        relChunker = new Chunker(relsReader, '\t');
     }
 
-    private void initProperties(BatchInserterImpl inserter) {
-        final String[] nodesFields = nodesData.getFields();
-        final String[] relFields = relsData.getFields();
+    private void initProperties(BatchInserterImpl inserter) throws IOException {
 
+        final String[] nodesFields = nodesReader.readLine().split("\t");
+        nodePropCount = nodesFields.length;
+        String[] relFields = relsReader.readLine().split("\t");
+        relFields = Arrays.copyOfRange(relFields, 3, relFields.length);
+        relPropCount = relFields.length;
         List<String> propertyNames = new ArrayList<String>(asList(nodesFields));
         propertyNames.addAll(asList(relFields));
 
@@ -215,11 +220,9 @@ public class ParallelImporter implements NodeStructFactory {
     @Override
     public void fillStruct(long nodeId, NodeStruct nodeStruct) {
         try {
-            String nodesLine = nodesReader.readLine();
-            if (nodesLine == null) throw new IllegalStateException("Less Node rows than indicated at id " + nodeId);
 
-            final Object[] rowData = nodesData.updateArray(nodesLine,(Object[])null);
-            addProperties(nodeStruct, rowData, nodesData.getCount(), nodePropIds);
+            if (nodeId>=nodesToCreate) throw new IllegalStateException("Already at "+nodeId+" but only configured to import "+nodesToCreate+" nodes");
+            addProperties(nodeStruct,nodeChunker, nodePropIds,nodePropCount);
 
             addRelationships(nodeId, nodeStruct);
 
@@ -231,26 +234,24 @@ public class ParallelImporter implements NodeStructFactory {
 
     private void addRelationships(long nodeId, NodeStruct nodeStruct) throws IOException {
         while (true) {
-            // todo real record-class for relationship-row data
-            if (relRowData==null) {
-                String line = relsReader.readLine();
-                if (line==null) break; // reached end
-                relRowData = relsData.updateArray(line, relHeader);
+            if (from == -1) {
+                final String token = relChunker.nextWord();
+                if (token==null) return;
+                from = Long.parseLong(token);
             }
-
-            long from = Long.parseLong((String)relHeader[0]);
-            long to = Long.parseLong((String)relHeader[1]);
+            if (to == -1) to = Long.parseLong(relChunker.nextWord());
             long min = Math.min(from, to);
             if (min < nodeId)
                 throw new IllegalStateException(String.format("relationship-rows not pre-sorted found id %d less than node-id %d", min, nodeId));
-            if (min > nodeId) break; // keep row data
+            if (min > nodeId) break; // keep parsed data
 
             long target = Math.max(from, to);
             final boolean outgoing = from == min;
-            final Relationship rel = nodeStruct.addRel(target, outgoing, type(relHeader[2]));
+            final Relationship rel = nodeStruct.addRel(target, outgoing, type(relChunker.nextWord()));
 
-            addProperties(rel, relRowData, relsData.getCount(), relPropIds);
-            relRowData = null;
+            addProperties(rel, relChunker, relPropIds,relPropCount);
+            from = -1;
+            to = -1;
         }
     }
 
@@ -260,10 +261,12 @@ public class ParallelImporter implements NodeStructFactory {
         throw new IllegalStateException("Unknown Relationship-Type "+relType);
     }
 
-    private void addProperties(PropertyHolder propertyHolder, Object[] rowData, int count, final int[] propIds) {
-        for (int i=count-1;i>=0;i--) {
-            if (rowData[i]==null) continue;
-            propertyHolder.addProperty(propIds[i], rowData[i]);
+    private void addProperties(PropertyHolder propertyHolder, Chunker nodeChunker, final int[] propIds, int count) throws IOException {
+        for (int i = 0; i < count; i++) {
+            final String value = nodeChunker.nextWord();
+            if (value==null) return; // EOF
+            if (value.isEmpty()) continue;
+            propertyHolder.addProperty(propIds[i], value);
         }
     }
 
