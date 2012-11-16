@@ -12,6 +12,7 @@ import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 
 import java.io.*;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -46,41 +47,48 @@ import static org.neo4j.helpers.collection.MapUtil.stringMap;
 // sorted by outgoing from node
 
 // todo class for import information
-// todo better row parsing / handling, record-objects for nodes/rels (at least flyweights - from Node-Struct, PropertyHolder)
 
 public class ParallelImporter implements NodeStructFactory {
 
+    private static final int MEGABYTE = 1024 * 1024;
+
     private final static Logger log = Logger.getLogger(ParallelImporter.class);
 
-    private static final boolean RUN_CHECK = false;
-    private static final int MEGABYTE = 1024 * 1024;
     private static final File PROP_FILE = new File("batch.properties");
     private DisruptorBatchInserter inserter;
     private final File graphDb;
-    private final File nodesFile;
-    private final File relationshipsFile;
+
+    // config options
+    private final boolean runCheck;
     private final long nodesToCreate;
     private final int propsPerNode;
     private final int relsPerNode;
     private final int maxRelsPerNode;
     private final int propsPerRel;
-    private Report report;
+    private final char delim;
+
+    private final String nodesFile;
     private BufferedReader nodesReader;
+    private Chunker nodeChunker;
+    private final String relationshipsFile;
     private BufferedReader relsReader;
+    private Chunker relChunker;
+
     private String[] relTypes;
     private int[] nodePropIds;
+    private int nodePropCount;
     private int[] relPropIds;
+    private int relPropCount;
     private int[] relTypeIds;
     private final int relTypesCount;
-    private Chunker nodeChunker;
-    private Chunker relChunker;
-    private int nodePropCount;
-    private int relPropCount;
+
+    private Report report;
+
     private long from = -1;
     private long to = -1;
 
-    public ParallelImporter(File graphDb, File nodesFile, File relationshipsFile,
-                            long nodesToCreate, int propsPerNode, int relsPerNode, int maxRelsPerNode, int propsPerRel, String[] relTypes) {
+    public ParallelImporter(File graphDb, String nodesFile, String relationshipsFile,
+                            long nodesToCreate, int propsPerNode, int relsPerNode, int maxRelsPerNode, int propsPerRel, String[] relTypes, final char delim, final boolean runCheck) {
         this.graphDb = graphDb;
         this.nodesFile = nodesFile;
         this.relationshipsFile = relationshipsFile;
@@ -91,6 +99,8 @@ public class ParallelImporter implements NodeStructFactory {
         this.propsPerRel = propsPerRel;
         this.relTypes = relTypes;
         this.relTypesCount = relTypes.length;
+        this.delim = delim;
+        this.runCheck = runCheck;
         report = createReport();
     }
 
@@ -106,8 +116,8 @@ public class ParallelImporter implements NodeStructFactory {
             System.exit(1);
         }
         File graphDb = params.file("data/dir");
-        File nodesFile = params.file("nodes.csv");
-        File relationshipsFile = params.file("relationships.csv");
+        String nodesFile = params.string("nodes.csv");
+        String relationshipsFile = params.string("relationships.csv");
 
         if (graphDb.exists()) {
             FileUtils.deleteRecursively(graphDb);
@@ -118,7 +128,7 @@ public class ParallelImporter implements NodeStructFactory {
                 params.intValue("#usual-rels-pernode"),
                 params.intValue("#max-rels-per-node"),
                 params.intValue("#max-props-per-rel"),
-                params.string("rel,types").split(","));
+                params.string("rel,types").split(","), '\t', false);
         importer.init();
         long time = System.currentTimeMillis();
         try {
@@ -129,13 +139,13 @@ public class ParallelImporter implements NodeStructFactory {
         time = System.currentTimeMillis() - time;
         log.info(nodesToCreate + " took " + time + " ms");
 
-        if (RUN_CHECK) ConsistencyCheckTool.main(new String[]{graphDb.getAbsolutePath()});
+        if (importer.runCheck) ConsistencyCheckTool.main(new String[]{graphDb.getAbsolutePath()});
     }
 
     private void finish() {
         inserter.shutdown();
         inserter.report();
-        report.finishImport("Nodes");
+        report.finishImport("");
     }
 
     private void run() {
@@ -191,18 +201,24 @@ public class ParallelImporter implements NodeStructFactory {
     }
 
     private void initReader() throws IOException {
-        nodesReader = new BufferedReader(new FileReader(nodesFile), MEGABYTE);
-        nodeChunker = new Chunker(nodesReader, '\t');
+        nodesReader = new BufferedReader(readerFor(nodesFile), MEGABYTE);
+        nodeChunker = new Chunker(nodesReader, delim);
 
-        relsReader = new BufferedReader(new FileReader(relationshipsFile), MEGABYTE);
-        relChunker = new Chunker(relsReader, '\t');
+        relsReader = new BufferedReader(readerFor(relationshipsFile), MEGABYTE);
+        relChunker = new Chunker(relsReader, delim);
+    }
+
+    private Reader readerFor(String file) throws IOException {
+        if (file.startsWith("http")) return new InputStreamReader(new URL(file).openStream());
+        if (new File(file).exists()) return new FileReader(file);
+        throw new IOException("Input File "+file+" does not exist");
     }
 
     private void initProperties(BatchInserterImpl inserter) throws IOException {
 
-        final String[] nodesFields = nodesReader.readLine().split("\t");
+        final String[] nodesFields = nodesReader.readLine().split(String.valueOf(delim));
         nodePropCount = nodesFields.length;
-        String[] relFields = relsReader.readLine().split("\t");
+        String[] relFields = relsReader.readLine().split(String.valueOf(delim));
         relFields = Arrays.copyOfRange(relFields, 3, relFields.length);
         relPropCount = relFields.length;
         List<String> propertyNames = new ArrayList<String>(asList(nodesFields));
@@ -243,7 +259,7 @@ public class ParallelImporter implements NodeStructFactory {
             long min = Math.min(from, to);
             if (min < nodeId)
                 throw new IllegalStateException(String.format("relationship-rows not pre-sorted found id %d less than node-id %d", min, nodeId));
-            if (min > nodeId) break; // keep parsed data
+            if (min > nodeId) break; // keep already parsed data
 
             long target = Math.max(from, to);
             final boolean outgoing = from == min;

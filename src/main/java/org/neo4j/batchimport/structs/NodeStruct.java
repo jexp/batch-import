@@ -3,6 +3,7 @@ package org.neo4j.batchimport.structs;
 import org.neo4j.kernel.impl.nioneo.store.Record;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -66,4 +67,19 @@ public class NodeStruct extends PropertyHolder {
     private boolean isRelInArray(int i) {
         return i<avgRelCount;
     }
+
+    @Override
+    public String toString() {
+        StringBuilder rels=new StringBuilder();
+        for (int i=0;i<relationshipCount;i++) {
+            rels.append(getRelationship(i)).append("\n");
+        }
+        return "NodeStruct{" +
+                " firstRel=" + firstRel +
+                ", relationshipCount=" + relationshipCount +
+                ", lastPropertyId=" + lastPropertyId +
+                " relationships=\n" + rels +
+                '}';
+    }
 }
+

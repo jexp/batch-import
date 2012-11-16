@@ -68,7 +68,6 @@ public class ForwardRelationshipUpdateHandler implements EventHandler<NodeStruct
         long other = relationship.other();
         if (other <= nodeId) return;
         final boolean otherDirection = !relationship.outgoing();
-        if (relationship.id==4842) System.out.println(nodeId+" relationship = " + relationship);
         futureNodeRelInfo.add(other,relationship.id,otherDirection);
     }
 }

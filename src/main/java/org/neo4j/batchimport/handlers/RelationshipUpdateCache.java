@@ -2,6 +2,7 @@ package org.neo4j.batchimport.handlers;
 
 import edu.ucla.sspace.util.primitive.IntSet;
 import edu.ucla.sspace.util.primitive.TroveIntSet;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.nio.BufferOverflowException;
@@ -13,10 +14,13 @@ import java.util.Arrays;
  * @since 10.11.12
  */
 public class RelationshipUpdateCache implements RelationshipUpdater {
+    private final static Logger log = Logger.getLogger(RelationshipUpdateCache.class);
+
     private static final int BUCKETS = 16;
-    public static final int RELS_PER_BUFFER =  20 * (1024 * 1024);
+    public static final int RELS_PER_BUFFER =  20 * (1024 * 1024); // 20M rels per buffer
     private static final int RECORD_SIZE = (Short.SIZE + 3 * Integer.SIZE) / 8;
     private static final int CAPACITY = RELS_PER_BUFFER * RECORD_SIZE;
+    private static final int SLEEP_RECOVER_CREATE_TIME_MS = 2000;
 
     private final ByteBuffer[] buffers;
 
@@ -72,18 +76,12 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
 
     public boolean update(long relId, boolean outgoing, long prevId, long nextId) throws IOException {
         ByteBuffer buffer = selectBuffer(relId);
-        // final int position = buffer.position();
-        // final int limit = buffer.limit();
-        // System.out.printf("rel %d buffer pos %d buffer limit %d pos==limit %s %n",relId,buffer.position(),buffer.limit(),buffer.position()==buffer.limit());
         flushBuffer(buffer, false);
-        // final int posAfterFlush = buffer.position();
         addToBuffer(buffer, relId, outgoing, prevId, nextId);
-        // final int posAfterAdd = buffer.position();
         return true;
     }
 
     private void addToBuffer(ByteBuffer buffer, long relId, boolean outgoing, long prevId, long nextId) {
-        // final int position = buffer.position();
         int relIdMod = (int)((relId & 0x700000000L) >> 31); //0..2
         int prevIdMod = prevId <= 0 ? 0 : (int)((prevId & 0x700000000L) >> 28); //3..5
         int nextIdMod = nextId <= 0 ? 0 : (int)((nextId & 0x700000000L) >> 25); //6..8
@@ -124,11 +122,12 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
             buffer.limit(buffer.position());
             buffer.position(0);
             IntSet failedPositions = new TroveIntSet(100);
+            long time=System.currentTimeMillis();
             while (buffer.position() != buffer.limit()) {
                 final int position = buffer.position();
                 if (!updateFromBuffer(buffer)) failedPositions.add(position);
             }
-            System.out.println("failedPositions.size() = " + failedPositions.size());
+            if (log.isInfoEnabled()) log.info(String.format("flushed buffer %d, kept %d took %d ms.",idx(buffer),failedPositions.size(),System.currentTimeMillis()-time));
             stats[idx(buffer)].written(buffer.position()/RECORD_SIZE - failedPositions.size());
             buffer.limit(CAPACITY);
             int initialPos=failedPositions.isEmpty() ? 0 : copyFailedPositions(buffer, failedPositions);
@@ -148,7 +147,7 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
         }
         try {
             // give the relationship-writer time to write out the relationships
-            if (writePos==buffer.limit()) Thread.sleep(2000);
+            if (writePos==buffer.limit()) Thread.sleep(SLEEP_RECOVER_CREATE_TIME_MS);
         } catch (InterruptedException e) {
             throw new RuntimeException(e);
         }

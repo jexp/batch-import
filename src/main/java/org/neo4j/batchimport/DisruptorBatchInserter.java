@@ -22,35 +22,39 @@ import java.util.concurrent.Executors;
 * @since 27.10.12
 */
 
-// todo self-relationships
 public class DisruptorBatchInserter {
 
     private final static Logger log = Logger.getLogger(DisruptorBatchInserter.class);
 
-    private final int RING_SIZE;
+    private volatile boolean stop;
 
     private Disruptor<NodeStruct> disruptor;
-    private final String storeDir;
     private BatchInserterImpl inserter;
     private ExecutorService executor;
+
+    private final NodeStructFactory nodeStructFactory;
+
+    // config options
+    private static final int REPORT_ON_NTH = 100;
+    private final int ringSize;
+    private final String storeDir;
+    private final Map<String,String> config;
+    private final long nodesToCreate;
+
     private PropertyEncodingHandler[] propertyMappingHandlers;
     private RelationshipIdHandler relationshipIdHandler;
     private NodeWriteRecordHandler nodeWriter;
     private PropertyWriteRecordHandler propertyWriter;
     private RelationshipWriteHandler relationshipWriter;
     private PropertyRecordCreatorHandler propertyRecordCreatorHandler;
-    private final Map<String,String> config;
-    private final long nodesToCreate;
-    private final NodeStructFactory nodeStructFactory;
-    private volatile boolean stop;
-    private CleanupMemoryHandler cleanupMemoryHandler;
     private ForwardRelationshipUpdateHandler forwardRelationshipUpdateHandler;
+    private CleanupMemoryHandler cleanupMemoryHandler;
 
     public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
-        final int minBufferBits = 18; // (int) (Math.log(nodesToCreate / 100) / Math.log(2));
-        RING_SIZE = 1 << minBufferBits; //Math.min(minBufferBits,18);
-        System.out.println("Ring size "+RING_SIZE);
+        final int minBufferBits = (int) (Math.log(nodesToCreate / 1000) / Math.log(2));
+        this.ringSize = 1 << Math.min(minBufferBits,18);
+        log.info("Ring size " + ringSize);
         this.config = config;
         this.nodesToCreate = nodesToCreate;
         this.nodeStructFactory = nodeStructFactory;
@@ -64,7 +68,7 @@ public class DisruptorBatchInserter {
         final int processors = Runtime.getRuntime().availableProcessors();
         executor = processors >=4 ? Executors.newFixedThreadPool(processors*2) : Executors.newCachedThreadPool();
 
-        disruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(RING_SIZE), new YieldingWaitStrategy());
+        disruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(ringSize), new YieldingWaitStrategy());
         disruptor.handleExceptionsWith(new BatchInserterExceptionHandler());
         createHandlers(neoStore, nodeStructFactory);
 
@@ -102,7 +106,7 @@ public class DisruptorBatchInserter {
 
             nodeStructFactory.fillStruct(nodeId,nodeStruct);
 
-            if (nodesToCreate>100 && nodeId % (nodesToCreate / 100) == 0) {
+            if (nodesToCreate> REPORT_ON_NTH && nodeId % (nodesToCreate / REPORT_ON_NTH) == 0) {
                 log.info(nodeId + " " + (System.currentTimeMillis()-time)+" ms.");
                 time = System.currentTimeMillis();
             }
@@ -121,13 +125,14 @@ public class DisruptorBatchInserter {
         inserter.shutdown();
     }
     void report() {
-        log.info("mapped " + Arrays.deepToString(propertyMappingHandlers));
+        log.info("property mapping " + Arrays.deepToString(propertyMappingHandlers));
 
-        log.info("relIds " + relationshipIdHandler);
+        log.info("relationship id generation " + relationshipIdHandler);
 
-        log.info("wrote nodes " + nodeWriter);
-        log.info("wrote rels " + relationshipWriter);
-        log.info("wrote props " + propertyWriter);
+        log.info("node writing " + nodeWriter);
+        log.info("relationship writing " + relationshipWriter);
+        log.info("relationship updates " + forwardRelationshipUpdateHandler);
+        log.info("property writing " + propertyWriter);
     }
 
     private class BatchInserterExceptionHandler implements ExceptionHandler {
