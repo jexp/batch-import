@@ -53,9 +53,18 @@ public class Importer {
         }
         Importer importer = new Importer(graphDb);
         try {
-            if (nodesFile.exists()) importer.importNodes(new FileReader(nodesFile));
+            if (nodesFile.exists()) {
+                importer.importNodes(new FileReader(nodesFile));
+            } else {
+                System.err.println("Nodes file "+nodesFile+" does not exist");
+            }
 
-            if (relationshipsFile.exists()) importer.importRelationships(new FileReader(relationshipsFile));
+            if (relationshipsFile.exists()) {
+                importer.importRelationships(new FileReader(relationshipsFile));
+            } else {
+                System.err.println("Relationships file "+relationshipsFile+" does not exist");
+            }
+
 
             for (int i = 3; i < args.length; i = i + 4) {
                 String elementType = args[i];
@@ -137,7 +146,10 @@ public class Importer {
 
     private void importIndex(String elementType, String indexName, String indexType, String indexFileName) throws IOException {
         File indexFile = new File(indexFileName);
-        if (!indexFile.exists()) return;
+        if (!indexFile.exists()) {
+            System.err.println("Index file "+indexFile+" does not exist");
+            return;
+        }
         BatchInserterIndex index = elementType.equals("node_index") ? nodeIndexFor(indexName, indexType) : relationshipIndexFor(indexName, indexType);
         importIndex(indexName, index, new FileReader(indexFile));
     }
