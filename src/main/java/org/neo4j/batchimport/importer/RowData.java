@@ -58,7 +58,7 @@ public class RowData {
     private void parse(String line) {
         final StringTokenizer st = new StringTokenizer(line, delim,true);
         for (int i = 0; i < lineSize; i++) {
-            String value = st.nextToken();
+            String value = st.hasMoreTokens() ? st.nextToken() : delim;
             if (value.equals(delim)) {
                 lineData[i] = null;
             } else {
