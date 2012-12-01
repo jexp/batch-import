@@ -63,7 +63,7 @@ public class RowData {
                 lineData[i] = null;
             } else {
                 lineData[i] = value.trim().isEmpty() ? null : value;
-                if (i< lineSize -1) st.nextToken();
+                if (i< lineSize -1 && st.hasMoreTokens()) st.nextToken();
             }
         }
     }

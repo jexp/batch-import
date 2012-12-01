@@ -42,6 +42,21 @@ public class RowDataTest {
         assertEquals(null,map.get("b"));
         assertEquals(null,map.get("c"));
     }
+
+    @Test
+    public void testLeadOneRow() throws Exception {
+        final Map<String,Object> map = rowData.updateMap("1\t");
+        assertEquals("1",map.get("a"));
+        assertEquals(null,map.get("b"));
+        assertEquals(null,map.get("c"));
+    }
+    @Test
+    public void testLeadTwoRow() throws Exception {
+        final Map<String,Object> map = rowData.updateMap("1\t2");
+        assertEquals("1",map.get("a"));
+        assertEquals("2",map.get("b"));
+        assertEquals(null,map.get("c"));
+    }
     @Test
     public void testNormalCells() throws Exception {
         final Map<String,Object> map = rowData.updateMap("1\t2\t3");
