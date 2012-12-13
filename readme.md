@@ -1,11 +1,12 @@
 # Neo4j (CSV) Batch Importer
 
-You provide one tab separated csv file for nodes and one for relationships (optionally more for indexes)
+You provide one **tab separated** csv file for nodes and one for relationships (optionally more for indexes)
 
 Example data for the files is a small social network
 
 ## File format
 
+* **tab separated** csv file
 * Property names in first row.
 * The row number corresponds to the node-id (node 0 is the reference node)
 * Property values not listed will not be set on the nodes or properties.
