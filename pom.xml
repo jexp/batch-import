@@ -2,9 +2,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.neo4j</groupId>
     <artifactId>batch-import</artifactId>
-    <version>0.1-SNAPSHOT</version>
-    <name>Simple Batch Importer</name>
-
+    <version>1.9-SNAPSHOT</version>
+    <name>Neo4j Batch Importer</name>
+    <properties>
+        <neo4j.version>1.9.M01</neo4j.version>
+    </properties>
   <repositories>
     <repository>
       <id>Neo4j Snapshots</id>
@@ -14,10 +16,20 @@
 
     <dependencies>
         <dependency>
+        	<groupId>edu.ucla.sspace</groupId>
+        	<artifactId>sspace</artifactId>
+        	<version>2.0.3</version>
+        </dependency>
+        <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
             <version>4.8.1</version>
             <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
         </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
@@ -28,14 +40,23 @@
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-kernel</artifactId>
-            <version>1.8</version>
+            <version>${neo4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-enterprise</artifactId>
+            <version>${neo4j.version}</version>
         </dependency>
         <dependency>
             <groupId>org.neo4j</groupId>
             <artifactId>neo4j-lucene-index</artifactId>
-            <version>1.8</version>
+            <version>${neo4j.version}</version>
         </dependency>
-
+        <dependency>
+            <groupId>com.googlecode.disruptor</groupId>
+            <artifactId>disruptor</artifactId>
+            <version>2.10.3</version>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
