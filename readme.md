@@ -10,7 +10,7 @@ Example data for the files is a small social network
 * Property names in first row.
 * The row number corresponds to the node-id (node 0 is the reference node)
 * Property values not listed will not be set on the nodes or properties.
-* Optionally property fields can have a type (defaults to String) indicated with name:type where type is one of (int, long, float, double, boolean, byte, short, char, string). The string value is then converted to that type. Conversion failure will result in abort of the import operation.
+* Optionally property fields can have a type (defaults to String) indicated with name:type where type is one of (int, long, float, double, boolean, byte, short, char, string, string_array). The string value is then converted to that type. Conversion failure will result in abort of the import operation. Use commas to separate values in array.
 
 ## Examples
 
