@@ -5,7 +5,6 @@ import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.batchimport.structs.Property;
 import org.neo4j.batchimport.structs.PropertyHolder;
 import org.neo4j.kernel.impl.nioneo.store.PropertyStore;
-import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 
 /**
 * @author mh
@@ -17,15 +16,15 @@ public class PropertyEncodingHandler implements EventHandler<NodeStruct> {
     private final PropertyStore propStore;
     public static final int MASK = 1;
 
-    public PropertyEncodingHandler(BatchInserterImpl inserter, int pos) {
+    public PropertyEncodingHandler(int pos, PropertyStore propertyStore) {
         this.pos = pos;
-        propStore = inserter.getPropertyStore();
+        propStore = propertyStore;
     }
 
-    public static PropertyEncodingHandler[] createHandlers(final BatchInserterImpl inserter) {
+    public static PropertyEncodingHandler[] createHandlers(PropertyStore propertyStore) {
         PropertyEncodingHandler[] propertyMappingHandlers = new PropertyEncodingHandler[MASK + 1];
         for (int i = 0; i < propertyMappingHandlers.length; i++) {
-            propertyMappingHandlers[i] = new PropertyEncodingHandler(inserter, i);
+            propertyMappingHandlers[i] = new PropertyEncodingHandler(i, propertyStore);
         }
         return propertyMappingHandlers;
     }
