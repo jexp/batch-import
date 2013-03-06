@@ -140,7 +140,6 @@ It uses the above dependency setup of disruptor handlers to execute the differen
 
 ## current limitations, constraints:
 
-* only up to 2bn relationships (due to an int based multi-map)
 * have to know max # of rels per node, properties per node and relationship
 * relationships have to be pre-sorted by min(start,end)
 
