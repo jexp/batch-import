@@ -5,7 +5,7 @@
     <version>1.9-SNAPSHOT</version>
     <name>Neo4j Batch Importer</name>
     <properties>
-        <neo4j.version>1.9-SNAPSHOT</neo4j.version>
+        <neo4j.version>1.9.M04</neo4j.version>
     </properties>
   <repositories>
     <repository>

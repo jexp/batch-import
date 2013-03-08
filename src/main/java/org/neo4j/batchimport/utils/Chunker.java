@@ -10,7 +10,7 @@ import java.io.Reader;
 public class Chunker {
     private final Reader reader;
     private final char delim;
-    private final char[] buffer=new char[100];
+    private final char[] buffer=new char[10240];
 
     public Chunker(Reader reader, char delim) {
         this.reader = reader;
