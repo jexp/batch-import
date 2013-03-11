@@ -1,6 +1,7 @@
 package org.neo4j.batchimport;
 
 import org.apache.log4j.Logger;
+import org.neo4j.batchimport.importer.Type;
 import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.batchimport.structs.PropertyHolder;
 import org.neo4j.batchimport.structs.Relationship;
@@ -86,6 +87,8 @@ public class ParallelImporter implements NodeStructFactory {
 
     private long from = -1;
     private long to = -1;
+    private Type[] nodePropertyTypes;
+    private Type[] relPropertyTypes;
 
     public ParallelImporter(File graphDb, String nodesFile, String relationshipsFile,
                             long nodesToCreate, int propsPerNode, int relsPerNode, int maxRelsPerNode, int propsPerRel, String[] relTypes, final char delim, final boolean runCheck) {
@@ -214,12 +217,30 @@ public class ParallelImporter implements NodeStructFactory {
         throw new IOException("Input File "+file+" does not exist");
     }
 
+    
+    private Type[] parseTypes(String[] fields) {
+        int lineSize = fields.length;
+        Type[] types = new Type[lineSize];
+        Arrays.fill(types, Type.STRING);
+        for (int i = 0; i < lineSize; i++) {
+            String field = fields[i];
+            int idx = field.indexOf(':');
+            if (idx!=-1) {
+               fields[i]=field.substring(0,idx);
+               types[i]= Type.fromString(field.substring(idx + 1));
+            }
+        }
+        return types;
+    }
+
     private void initProperties(BatchInserterImpl inserter) throws IOException {
 
         final String[] nodesFields = nodesReader.readLine().split(String.valueOf(delim));
+        nodePropertyTypes = parseTypes(nodesFields);
         nodePropCount = nodesFields.length;
         String[] relFields = relsReader.readLine().split(String.valueOf(delim));
         relFields = Arrays.copyOfRange(relFields, 3, relFields.length);
+        relPropertyTypes = parseTypes(relFields);
         relPropCount = relFields.length;
         List<String> propertyNames = new ArrayList<String>(asList(nodesFields));
         propertyNames.addAll(asList(relFields));
@@ -238,7 +259,7 @@ public class ParallelImporter implements NodeStructFactory {
         try {
 
             if (nodeId>=nodesToCreate) throw new IllegalStateException("Already at "+nodeId+" but only configured to import "+nodesToCreate+" nodes");
-            addProperties(nodeStruct,nodeChunker, nodePropIds,nodePropCount);
+            addProperties(nodeStruct,nodeChunker, nodePropIds,nodePropCount,nodePropertyTypes);
 
             addRelationships(nodeId, nodeStruct);
 
@@ -265,7 +286,7 @@ public class ParallelImporter implements NodeStructFactory {
             final boolean outgoing = from == min;
             final Relationship rel = nodeStruct.addRel(target, outgoing, type(relChunker.nextWord()));
 
-            addProperties(rel, relChunker, relPropIds,relPropCount);
+            addProperties(rel, relChunker, relPropIds,relPropCount, relPropertyTypes);
             from = -1;
             to = -1;
         }
@@ -277,13 +298,14 @@ public class ParallelImporter implements NodeStructFactory {
         throw new IllegalStateException("Unknown Relationship-Type "+relType);
     }
 
-    private void addProperties(PropertyHolder propertyHolder, Chunker nodeChunker, final int[] propIds, int count) throws IOException {
+    private void addProperties(PropertyHolder propertyHolder, Chunker nodeChunker, final int[] propIds, int count, Type[] propertyTypes) throws IOException {
         String value;
         int i=0;
         do {
             value = nodeChunker.nextWord();
             if (Chunker.NO_VALUE != value && Chunker.EOL != value && Chunker.EOF != value && i<count) {
-                propertyHolder.addProperty(propIds[i], value);
+                Object converted = propertyTypes[i] == Type.STRING ? value : propertyTypes[i].convert(value);
+                propertyHolder.addProperty(propIds[i], converted);
             }
             i++;
         } while (value!=Chunker.EOF && value!=Chunker.EOL);
