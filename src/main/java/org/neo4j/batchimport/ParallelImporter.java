@@ -280,8 +280,8 @@ public class ParallelImporter implements NodeStructFactory {
     private void addProperties(PropertyHolder propertyHolder, Chunker nodeChunker, final int[] propIds, int count) throws IOException {
         for (int i = 0; i < count; i++) {
             final String value = nodeChunker.nextWord();
-            if (value==null) return; // EOF
-            if (value.isEmpty()) continue;
+            if (Chunker.EOL==value || Chunker.EOF==value) return;
+            if (Chunker.NO_VALUE==value) continue;
             propertyHolder.addProperty(propIds[i], value);
         }
     }
