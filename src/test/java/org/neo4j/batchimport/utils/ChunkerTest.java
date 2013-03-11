@@ -47,11 +47,21 @@ public class ChunkerTest {
     }
 
     @Test
-    public void testLineWithEmptyFields() throws Exception {
+    public void testLineWithEmptyField() throws Exception {
         Chunker chunker = newChunker("a\t\tb\n");
         assertEquals("a", chunker.nextWord());
         assertEquals(Chunker.NO_VALUE, chunker.nextWord());
         assertEquals("b", chunker.nextWord());
+        assertEquals(Chunker.EOL, chunker.nextWord());
+        assertSame(Chunker.EOF, chunker.nextWord());
+    }
+    @Test
+    public void testLineWithOnlyEmptyFields() throws Exception {
+        Chunker chunker = newChunker("\t\t\t\n");
+        assertEquals(Chunker.NO_VALUE, chunker.nextWord());
+        assertEquals(Chunker.NO_VALUE, chunker.nextWord());
+        assertEquals(Chunker.NO_VALUE, chunker.nextWord());
+        assertEquals(Chunker.NO_VALUE, chunker.nextWord());
         assertEquals(Chunker.EOL, chunker.nextWord());
         assertSame(Chunker.EOF, chunker.nextWord());
     }
