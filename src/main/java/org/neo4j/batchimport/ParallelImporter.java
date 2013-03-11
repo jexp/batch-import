@@ -252,7 +252,7 @@ public class ParallelImporter implements NodeStructFactory {
         while (true) {
             if (from == -1) {
                 final String token = relChunker.nextWord();
-                if (token==null) return;
+                if (token==Chunker.EOF) return;
                 from = Long.parseLong(token);
             }
             if (to == -1) to = Long.parseLong(relChunker.nextWord());
@@ -278,12 +278,15 @@ public class ParallelImporter implements NodeStructFactory {
     }
 
     private void addProperties(PropertyHolder propertyHolder, Chunker nodeChunker, final int[] propIds, int count) throws IOException {
-        for (int i = 0; i < count; i++) {
-            final String value = nodeChunker.nextWord();
-            if (Chunker.EOL==value || Chunker.EOF==value) return;
-            if (Chunker.NO_VALUE==value) continue;
-            propertyHolder.addProperty(propIds[i], value);
-        }
+        String value;
+        int i=0;
+        do {
+            value = nodeChunker.nextWord();
+            if (Chunker.NO_VALUE != value && Chunker.EOL != value && Chunker.EOF != value && i<count) {
+                propertyHolder.addProperty(propIds[i], value);
+            }
+            i++;
+        } while (value!=Chunker.EOF && value!=Chunker.EOL);
     }
 
     @Override
