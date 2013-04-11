@@ -11,7 +11,7 @@ Example data for the files is a small social network
 * The row number corresponds to the node-id (node 0 is the reference node)
 * Property values not listed will not be set on the nodes or properties.
 * Optionally property fields can have a type (defaults to String) indicated with name:type where type is one of (int, long, float, double, boolean, byte, short, char, string). The string value is then converted to that type. Conversion failure will result in abort of the import operation.
-
+* for non-ascii characters make sure to add `-Dfile.encoding=UTF-8` to the commandline arguments
 ## Examples
 
 ### nodes.csv
@@ -34,7 +34,7 @@ Example data for the files is a small social network
 
 ## Execution
 
-    java -server -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv
+    java -server -Dfile.encoding=UTF-8 -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv
 
 
     ynagzet:batchimport mh$ rm -rf target/db
