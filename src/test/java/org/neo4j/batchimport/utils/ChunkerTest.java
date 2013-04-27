@@ -45,6 +45,14 @@ public class ChunkerTest {
         assertEquals(Chunker.EOL, chunker.nextWord());
         assertSame(Chunker.EOF, chunker.nextWord());
     }
+    @Test
+    public void testUtf8() throws Exception {
+        Chunker chunker = newChunker("ä\tá\n");
+        assertEquals("ä", chunker.nextWord());
+        assertEquals("á", chunker.nextWord());
+        assertEquals(Chunker.EOL, chunker.nextWord());
+        assertSame(Chunker.EOF, chunker.nextWord());
+    }
 
     @Test
     public void testLineWithEmptyField() throws Exception {
@@ -78,6 +86,8 @@ public class ChunkerTest {
         assertEquals(Chunker.EOL, chunker.nextWord());
         assertSame(Chunker.EOF, chunker.nextWord());
     }
+
+
 
     private Chunker newChunker(String lines) {
         return new Chunker(new StringReader(lines), '\t');

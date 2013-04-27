@@ -48,6 +48,12 @@ public class ImporterTest {
         verify(inserter, atLeastOnce()).createNode(eq(map("a", "foo")));
     }
     @Test
+    public void testImportSimpleNodeWithUmlauts() throws Exception {
+        importer.importNodes(new StringReader("ö\näáß"));
+        importer.finish();
+        verify(inserter, atLeastOnce()).createNode(eq(map("ö", "äáß")));
+    }
+    @Test
     public void testImportNodeWithMultipleProps() throws Exception {
         importer.importNodes(new StringReader("a\tb\nfoo\tbar"));
         importer.finish();
