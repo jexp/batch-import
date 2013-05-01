@@ -12,6 +12,7 @@ Example data for the files is a small social network
 * Property values not listed will not be set on the nodes or properties.
 * Optionally property fields can have a type (defaults to String) indicated with name:type where type is one of (int, long, float, double, boolean, byte, short, char, string). The string value is then converted to that type. Conversion failure will result in abort of the import operation.
 * for non-ascii characters make sure to add `-Dfile.encoding=UTF-8` to the commandline arguments
+
 ## Examples
 
 ### nodes.csv
