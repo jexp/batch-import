@@ -35,6 +35,10 @@ Example data for the files is a small social network
 
 ## Execution
 
+    mvn clean compile exec:java -Dexec.mainClass="org.neo4j.batchimport.Importer" -Dexec.args="neo4j/data/graph.db nodes.csv rels.csv"
+    
+    or
+    
     java -server -Dfile.encoding=UTF-8 -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv
 
 
