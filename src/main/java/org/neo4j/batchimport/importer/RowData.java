@@ -1,61 +1,115 @@
 package org.neo4j.batchimport.importer;
 
-import java.util.Arrays;
+import org.neo4j.batchimport.LineData;
+
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
 
 import static org.neo4j.helpers.collection.MapUtil.map;
 
-public class RowData {
-    private Object[] data;
+public class RowData implements LineData {
+    private Object[] properties;
     private final int offset;
     private final String delim;
-    private final String[] fields;
     private final String[] lineData;
-    private final Type types[];
     private final int lineSize;
-    private int dataSize;
-    private int count;
+    private int rows;
+    int labelId = 2;
+    private LineData.Header[] headers;
+    private int propertyCount;
+    private boolean hasIndex=false;
 
     public RowData(String header, String delim, int offset) {
         this.offset = offset;
         this.delim = delim;
-        fields = header.split(delim);
+        String[] fields = header.split(delim);
         lineSize = fields.length;
-        types = parseTypes(fields);
         lineData = new String[lineSize];
+        this.headers = createHeaders(fields);
         createMapData(lineSize, offset);
     }
 
-    public String[] getFields() {
-        if (offset==0) return fields;
-        return Arrays.copyOfRange(fields,offset,fields.length);
+    private Header[] createHeaders(String[] fields) {
+        Header[] headers = new Header[fields.length];
+        for (int i = 0; i < fields.length; i++) {
+            String[] parts=fields[i].split(":");
+            final String name = parts[0];
+            final String indexName = parts.length > 2 ? parts[2] : null;
+            Type type = Type.fromString(parts.length > 1 ? parts[1] : null);
+            if (type==Type.LABEL || name.matches("(type|types|label|labels)")) {
+                labelId=i;
+                type=Type.LABEL;
+            }
+            headers[i]=new Header(i, name, type, indexName);
+            hasIndex |= indexName != null;
+        }
+        return headers;
     }
 
     private Object[] createMapData(int lineSize, int offset) {
-        dataSize = lineSize - offset;
-        data = new Object[dataSize*2];
-        for (int i = 0; i < dataSize; i++) {
-            data[i * 2] = fields[i + offset];
+        int dataSize = Math.max(0,lineSize - offset);
+        properties = new Object[dataSize*2];
+        for (int i = offset; i < dataSize; i++) {
+            properties[(i - offset) * 2 ] = headers[i].name;
         }
-        return data;
+        return properties;
     }
 
-    private Type[] parseTypes(String[] fields) {
-        Type[] types = new Type[lineSize];
-        Arrays.fill(types, Type.STRING);
-        for (int i = 0; i < lineSize; i++) {
-            String field = fields[i];
-            int idx = field.indexOf(':');
-            if (idx!=-1) {
-               fields[i]=field.substring(0,idx);
-               types[i]= Type.fromString(field.substring(idx + 1));
+    @Override
+    public LineData processLine(String line) {
+        this.propertyCount = parse(line);
+        return this;
+    }
+
+    @Override
+    public Header[] getHeader() {
+        return headers;
+    }
+
+    @Override
+    public long getId() {
+        return rows;
+    }
+
+    @Override
+    public Map<String, Object> getProperties() {
+        return properties();
+    }
+
+    @Override
+    public Map<String, Map<String, Object>> getIndexData() {
+        if (!hasIndex) return Collections.EMPTY_MAP;
+        Map<String, Map<String, Object>> indexData = new HashMap<String, Map<String, Object>>();
+        for (int column = 0; column < headers.length; column++) {
+            Header header = headers[column];
+            if (header.indexName == null) continue;
+
+            if (!indexData.containsKey(header.indexName)) {
+                indexData.put(header.indexName, new HashMap<String, Object>());
             }
+            indexData.get(header.indexName).put(header.name,getValue(column));
         }
-        return types;
+        return indexData;
     }
 
-    private void parse(String line) {
+    @Override
+    public String[] getTypeLabels() {
+        return (String[])getValue(labelId);
+    }
+
+    @Override
+    public Object getValue(int column) {
+        return getHeader(column).type.convert(lineData[column]);
+    }
+
+    private Header getHeader(int column) {
+        return headers[column];
+    }
+
+    private int parse(String line) {
+        rows++;
         final StringTokenizer st = new StringTokenizer(line, delim,true);
         for (int i = 0; i < lineSize; i++) {
             String value = st.hasMoreTokens() ? st.nextToken() : delim;
@@ -66,59 +120,37 @@ public class RowData {
                 if (i< lineSize -1 && st.hasMoreTokens()) st.nextToken();
             }
         }
-    }
-    
-    public Object[] process(String line) {
-        parse(line);
-        count = 0;
-        for (int i=offset;i<lineSize;i++) {
-            data[count++] = lineData[i] == null ? null : types[i].convert(lineData[i]);
-        }
-        return data;
+        return collectNonNullInData();
     }
 
-    private int split(String line) {
-        parse(line);
-        count = 0;
+    private int collectNonNullInData() {
+        int count = 0;
         for (int i = offset; i < lineSize; i++) {
             if (lineData[i] == null) continue;
-            data[count++]=fields[i];
-            data[count++]=types[i].convert(lineData[i]);
+            final Header header = getHeader(i);
+            properties[count++]= header.name;
+            properties[count++]= getValue(i);
         }
         return count;
     }
 
     public Map<String,Object> updateMap(String line, Object... header) {
-        split(line);
+        processLine(line);
+
+        // todo deprecate
         if (header.length > 0) {
             System.arraycopy(lineData, 0, header, 0, header.length);
         }
 
-        if (count == dataSize*2) {
-            return map(data);
+        return properties();
+    }
+
+    private Map<String, Object> properties() {
+        if (propertyCount == properties.length) {
+            return map(properties);
         }
-        Object[] newData=new Object[count];
-        System.arraycopy(data,0,newData,0,count);
+        Object[] newData=new Object[propertyCount];
+        System.arraycopy(properties,0,newData,0, propertyCount);
         return map(newData);
-    }
-
-    public Object[] updateArray(String line, Object... header) {
-        process(line);
-        if (header!=null && header.length > 0) {
-            System.arraycopy(lineData, 0, header, 0, header.length);
-        }
-        return data;
-    }
-
-    public Object[] getData() {
-        return data;
-    }
-
-    public int getCount() {
-        return count;
-    }
-
-    public int getLineSize() {
-        return lineSize;
     }
 }

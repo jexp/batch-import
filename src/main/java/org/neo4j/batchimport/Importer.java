@@ -19,12 +19,20 @@ public class Importer {
     private static Report report;
     private BatchInserter db;
     private BatchInserterIndexProvider lucene;
-    
-    public Importer(File graphDb) {
+    Map<String,BatchInserterIndex> indexes=new HashMap<String, BatchInserterIndex>();
+
+    public Importer(File graphDb, Collection<IndexInfo> indexInfos) {
         Map<String, String> config = Utils.config();
                 
         db = createBatchInserter(graphDb, config);
         lucene = createIndexProvider();
+        if (indexInfos!=null) {
+            for (IndexInfo indexInfo : indexInfos) {
+                BatchInserterIndex index = indexInfo.elementType.equals("node_index") ? nodeIndexFor(indexInfo.indexName, indexInfo.indexType) : relationshipIndexFor(indexInfo.indexName, indexInfo.indexType);
+                indexes.put(indexInfo.indexName, index);
+            }
+        }
+
         report = createReport();
     }
 
@@ -32,12 +40,23 @@ public class Importer {
         return new StdOutReport(10 * 1000 * 1000, 100);
     }
 
-    protected LuceneBatchInserterIndexProvider createIndexProvider() {
+    protected BatchInserterIndexProvider createIndexProvider() {
         return new LuceneBatchInserterIndexProvider(db);
     }
 
     protected BatchInserter createBatchInserter(File graphDb, Map<String, String> config) {
         return BatchInserters.inserter(graphDb.getAbsolutePath(), config);
+    }
+
+    static class IndexInfo {
+        IndexInfo(String[] args, int offset) {
+            this.elementType = args[offset];
+            this.indexName = args[offset+1];
+            this.indexType = args[offset+2];
+            this.indexFileName = args[offset+3];
+        }
+
+        public final String elementType, indexName, indexType, indexFileName;
     }
 
     public static void main(String[] args) throws IOException {
@@ -47,11 +66,12 @@ public class Importer {
         File graphDb = new File(args[0]);
         File nodesFile = new File(args[1]);
         File relationshipsFile = new File(args[2]);
+        Collection<IndexInfo> indexes = createIndexInfos(args);
 
         if (graphDb.exists()) {
             FileUtils.deleteRecursively(graphDb);
         }
-        Importer importer = new Importer(graphDb);
+        Importer importer = new Importer(graphDb,indexes);
         try {
             if (nodesFile.exists()) {
                 importer.importNodes(new FileReader(nodesFile));
@@ -65,17 +85,20 @@ public class Importer {
                 System.err.println("Relationships file "+relationshipsFile+" does not exist");
             }
 
-
-            for (int i = 3; i < args.length; i = i + 4) {
-                String elementType = args[i];
-                String indexName = args[i + 1];
-                String indexType = args[i + 2];
-                String indexFileName = args[i + 3];
-                importer.importIndex(elementType, indexName, indexType, indexFileName);
+            for (IndexInfo indexInfo : indexes) {
+                importer.importIndex(indexInfo);
             }
 		} finally {
             importer.finish();
         }
+    }
+
+    private static Collection<IndexInfo> createIndexInfos(String[] args) {
+        Collection<IndexInfo> indexes=new ArrayList<IndexInfo>();
+        for (int i = 3; i < args.length; i = i + 4) {
+            indexes.add(new IndexInfo(args,i));
+        }
+        return indexes;
     }
 
     void finish() {
@@ -86,42 +109,70 @@ public class Importer {
 
     void importNodes(Reader reader) throws IOException {
         BufferedReader bf = new BufferedReader(reader);
-        final RowData data = new RowData(bf.readLine(), "\t", 0);
+        final LineData data = new RowData(bf.readLine(), "\t", 0);
         String line;
         report.reset();
         while ((line = bf.readLine()) != null) {
-            db.createNode(data.updateMap(line));
+            final LineData lineData = data.processLine(line);
+            final long id = db.createNode(lineData.getProperties());
+            for (Map.Entry<String, Map<String, Object>> entry : lineData.getIndexData().entrySet()) {
+                indexFor(entry.getKey()).add(id, entry.getValue());
+            }
             report.dots();
         }
         report.finishImport("Nodes");
     }
 
+    private long lookup(String index,String property,Object value) {
+        return indexFor(index).get(property, value).getSingle();
+    }
+
+    private BatchInserterIndex indexFor(String index) {
+        return indexes.get(index);
+    }
+
     void importRelationships(Reader reader) throws IOException {
         BufferedReader bf = new BufferedReader(reader);
-        final RowData data = new RowData(bf.readLine(), "\t", 3);
-        Object[] rel = new Object[3];
+        final LineData data = new RowData(bf.readLine(), "\t", 3);
         final RelType relType = new RelType();
         String line;
         report.reset();
+
         while ((line = bf.readLine()) != null) {
-            final Map<String, Object> properties = data.updateMap(line, rel);
-            db.createRelationship(id(rel[0]), id(rel[1]), relType.update(rel[2]), properties);
+            final LineData lineData = data.processLine(line);
+            final Map<String, Object> properties = data.getProperties();
+            final long start = id(data, 0);
+            final long end = id(data, 1);
+            final RelType type = relType.update(data.getTypeLabels()[0]);
+            final long id = db.createRelationship(start, end, type, properties);
+            for (Map.Entry<String, Map<String, Object>> entry : lineData.getIndexData().entrySet()) {
+                indexFor(entry.getKey()).add(id, entry.getValue());
+            }
             report.dots();
         }
         report.finishImport("Relationships");
+    }
+
+    private long id(LineData data, int column) {
+        final LineData.Header header = data.getHeader()[column];
+        final Object value = data.getValue(column);
+        if (header.indexName == null) {
+            return id(value);
+        }
+        return lookup(header.indexName, header.name, value);
     }
 
     void importIndex(String indexName, BatchInserterIndex index, Reader reader) throws IOException {
 
         BufferedReader bf = new BufferedReader(reader);
         
-        final RowData data = new RowData(bf.readLine(), "\t", 1);
-        Object[] node = new Object[1];
+        final LineData data = new RowData(bf.readLine(), "\t", 1);
         String line;
         report.reset();
-        while ((line = bf.readLine()) != null) {        
-            final Map<String, Object> properties = data.updateMap(line, node);
-            index.add(id(node[0]), properties);
+        while ((line = bf.readLine()) != null) {
+            data.processLine(line);
+            final Map<String, Object> properties = data.getProperties();
+            index.add(id(data.getValue(0)), properties);
             report.dots();
         }
                 
@@ -144,13 +195,12 @@ public class Importer {
         return Long.parseLong(id.toString());
     }
 
-    private void importIndex(String elementType, String indexName, String indexType, String indexFileName) throws IOException {
-        File indexFile = new File(indexFileName);
+    private void importIndex(IndexInfo indexInfo) throws IOException {
+        File indexFile = new File(indexInfo.indexFileName);
         if (!indexFile.exists()) {
             System.err.println("Index file "+indexFile+" does not exist");
             return;
         }
-        BatchInserterIndex index = elementType.equals("node_index") ? nodeIndexFor(indexName, indexType) : relationshipIndexFor(indexName, indexType);
-        importIndex(indexName, index, new FileReader(indexFile));
+        importIndex(indexInfo.indexName, indexes.get(indexInfo.indexName), new FileReader(indexFile));
     }
 }

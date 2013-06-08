@@ -9,7 +9,7 @@ public class DataTest {
     @Test
     public void testConvertType() throws Exception {
         RowData data = new RowData("a:int\tb:float\tc:float", "\t", 0);
-        Map<String,Object> row = data.updateMap("100\t100.0\t1E+10");
+        Map<String,Object> row = data.processLine("100\t100.0\t1E+10").getProperties();
         assertEquals(100, row.get("a"));
         assertEquals(true,row.get("b") instanceof Float);
         assertEquals(100.0F, row.get("b"));
@@ -22,21 +22,35 @@ public class DataTest {
     @Test
     public void testRelationship() throws Exception {
         RowData data = new RowData("start\tend\ttype\tproperty", "\t", 3);
-        Object[] rel = new Object[3];
-        Map<String,Object> row = data.updateMap("1\t2\tTYPE\tPROPERTY", rel);
-        assertEquals("1", rel[0]);
-        assertEquals("2", rel[1]);
-        assertEquals("TYPE", rel[2]);
+        data.processLine("1\t2\tTYPE\tPROPERTY");
+        Map<String,Object> row = data.getProperties();
+        assertEquals("1", data.getValue(0));
+        assertEquals("2", data.getValue(1));
+        assertEquals("TYPE", data.getTypeLabels()[0]);
         assertEquals("PROPERTY", row.get("property"));
     }
 
     @Test
     public void testRelationshipWithNoProperty() throws Exception {
         RowData data = new RowData("start\tend\ttype", "\t", 3);
-        Object[] rel = new Object[3];
-        Map<String,Object> row = data.updateMap("1\t2\tTYPE", rel);
-        assertEquals("1", rel[0]);
-        assertEquals("2", rel[1]);
-        assertEquals("TYPE", rel[2]);
+        data.processLine("1\t2\tTYPE");
+        assertEquals("1", data.getValue(0));
+        assertEquals("2", data.getValue(1));
+        assertEquals("TYPE", data.getTypeLabels()[0]);
+    }
+
+    @Test
+    public void testNodeLabels() throws Exception {
+        RowData data = new RowData("labels", "\t", 3);
+        data.processLine("TYPE1,TYPE2");
+        assertEquals("TYPE1", data.getTypeLabels()[0]);
+        assertEquals("TYPE2", data.getTypeLabels()[1]);
+    }
+    @Test
+    public void testNodeLabelsWithLabelType() throws Exception {
+        RowData data = new RowData("foo:label", "\t", 3);
+        data.processLine("TYPE1,TYPE2");
+        assertEquals("TYPE1", data.getTypeLabels()[0]);
+        assertEquals("TYPE2", data.getTypeLabels()[1]);
     }
 }

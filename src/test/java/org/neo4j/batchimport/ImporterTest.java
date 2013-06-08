@@ -5,6 +5,7 @@ import org.junit.Test;
 import org.mockito.Mockito;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
 
 import java.io.File;
 import java.io.StringReader;
@@ -28,14 +29,14 @@ public class ImporterTest {
         inserter = Mockito.mock(BatchInserter.class);
         index = Mockito.mock(LuceneBatchInserterIndexProvider.class);
 
-        importer = new Importer(File.createTempFile("test", "db")) {
+        importer = new Importer(File.createTempFile("test", "db"),null) {
             @Override
             protected BatchInserter createBatchInserter(File graphDb, Map<String, String> config) {
                 return inserter;
             }
 
             @Override
-            protected LuceneBatchInserterIndexProvider createIndexProvider() {
+            protected BatchInserterIndexProvider createIndexProvider() {
                 return index;
             }
         };

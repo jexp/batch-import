@@ -16,16 +16,18 @@ import java.util.Arrays;
 public class RelationshipUpdateCache implements RelationshipUpdater {
     private final static Logger log = Logger.getLogger(RelationshipUpdateCache.class);
 
-    private static final int BUCKETS = 16;
-    public static final int RELS_PER_BUFFER =  20 * (1024 * 1024); // 20M rels per buffer
-    private static final int RECORD_SIZE = (Short.SIZE + 3 * Integer.SIZE) / 8;
-    private static final int CAPACITY = RELS_PER_BUFFER * RECORD_SIZE;
-    private static final int SLEEP_RECOVER_CREATE_TIME_MS = 2000;
+    public static final int BUCKETS = 16;
+    public static final int RELS_PER_BUFFER =  20 * (1024 * 1024); // defaults to 20M rels per buffer
+    public static final int RECORD_SIZE = (Short.SIZE + 3 * Integer.SIZE) / 8;
+    public static final int SLEEP_RECOVER_CREATE_TIME_MS = 2000;
 
     private final ByteBuffer[] buffers;
 
     private final RelationshipUpdater relationshipUpdater;
+    private final int buckets;
+    private final int capacity;
     private final long shard;
+    private final int relsPerBuffer;
     private Stats[] stats;
 
     static class Stats {
@@ -51,16 +53,23 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
             return String.format("buffer %d min %d max %d added %d written %d %n",idx,min==Long.MAX_VALUE?-1:min,max==Long.MIN_VALUE?-1:max,added,written);
         }
     }
-    public RelationshipUpdateCache(RelationshipWriter relationshipUpdater, long total) {
+    public RelationshipUpdateCache(RelationshipWriter relationshipUpdater, long total, int buckets, int relsPerBuffer) {
         this.relationshipUpdater = relationshipUpdater;
-        this.buffers = createBuffers(BUCKETS, CAPACITY);
+        this.buckets = buckets;
+        this.relsPerBuffer = relsPerBuffer;
+        this.capacity = relsPerBuffer * RECORD_SIZE;
+        this.buffers = createBuffers(buckets, capacity);
         this.stats = createStats();
-        shard = total / BUCKETS;
+        shard = total / buckets;
+    }
+
+    public RelationshipUpdateCache(RelationshipWriter relationshipUpdater, long total) {
+        this(relationshipUpdater,total,BUCKETS,RELS_PER_BUFFER);
     }
 
     private Stats[] createStats() {
-        Stats[] stats = new Stats[BUCKETS];
-        for (int i = 0; i < BUCKETS; i++) {
+        Stats[] stats = new Stats[buckets];
+        for (int i = 0; i < buckets; i++) {
             stats[i]=new Stats(i);
         }
         return stats;
@@ -111,7 +120,7 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
 
     private ByteBuffer selectBuffer(long relId) {
         int idx= (int) (relId / shard);
-        idx = Math.max(0,Math.min(BUCKETS-1,idx));
+        idx = Math.max(0,Math.min(buckets-1,idx));
         stats[idx].add(relId);
         return buffers[idx];
     }
@@ -129,7 +138,7 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
             }
             if (log.isInfoEnabled()) log.info(String.format("flushed buffer %d, kept %d took %d ms.",idx(buffer),failedPositions.size(),System.currentTimeMillis()-time));
             stats[idx(buffer)].written(buffer.position()/RECORD_SIZE - failedPositions.size());
-            buffer.limit(CAPACITY);
+            buffer.limit(capacity);
             int initialPos=failedPositions.isEmpty() ? 0 : copyFailedPositions(buffer, failedPositions);
             buffer.position(initialPos);
         }
@@ -155,7 +164,7 @@ public class RelationshipUpdateCache implements RelationshipUpdater {
     }
 
     private int idx(ByteBuffer buffer) {
-        for (int i = 0; i < BUCKETS; i++) {
+        for (int i = 0; i < buckets; i++) {
             if (buffer==buffers[i]) return i;
         }
         return -1;
