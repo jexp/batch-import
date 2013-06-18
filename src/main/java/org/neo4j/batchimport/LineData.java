@@ -18,7 +18,7 @@ public interface LineData {
         public final Type type;
         public final String indexName; // todo index config in config
     }
-    LineData processLine(String line);
+    boolean processLine(String line);
     Header[] getHeader();
     long getId();
     Map<String,Object> getProperties();

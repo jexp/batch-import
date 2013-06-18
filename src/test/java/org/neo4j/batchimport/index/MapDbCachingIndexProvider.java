@@ -6,14 +6,12 @@ import org.mapdb.DB;
 import org.mapdb.DBMaker;
 import org.mapdb.Fun;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.helpers.collection.IteratorUtil;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
 import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
 
 import java.util.HashMap;
-import java.util.Iterator;
 import java.util.Map;
 import java.util.NavigableSet;
 
@@ -111,55 +109,6 @@ public class MapDbCachingIndexProvider implements BatchInserterIndexProvider {
             throw new UnsupportedOperationException();
         }
 
-        private static class LongIterableIndexHits implements IndexHits<Long> {
-
-            private final Iterable<Long> values;
-            private Iterator<Long> iterator;
-
-            public LongIterableIndexHits(Iterable<Long> values) {
-                this.values = values;
-                iterator = iterator();
-            }
-
-            @Override
-            public int size() {
-                return IteratorUtil.count(values);
-            }
-
-            @Override
-            public void close() {
-            }
-
-            @Override
-            public Long getSingle() {
-                return IteratorUtil.singleOrNull(values);
-            }
-
-            @Override
-            public float currentScore() {
-                return 0;
-            }
-
-            @Override
-            public Iterator<Long> iterator() {
-                iterator = values.iterator();
-                return iterator;
-            }
-
-            @Override
-            public boolean hasNext() {
-                return iterator.hasNext();
-            }
-
-            @Override
-            public Long next() {
-                return iterator.next();
-            }
-
-            @Override
-            public void remove() {
-                iterator.remove();
-            }
-        }
     }
+
 }

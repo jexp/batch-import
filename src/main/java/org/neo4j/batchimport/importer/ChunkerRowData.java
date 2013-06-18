@@ -1,40 +1,79 @@
 package org.neo4j.batchimport.importer;
 
 import org.neo4j.batchimport.LineData;
+import org.neo4j.batchimport.structs.PropertyHolder;
+import org.neo4j.batchimport.utils.Chunker;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.StringTokenizer;
+import java.io.IOException;
+import java.io.Reader;
+import java.util.*;
 
 import static org.neo4j.helpers.collection.MapUtil.map;
 
-public class RowData implements LineData {
+public class ChunkerRowData implements LineData {
     private Object[] properties;
     private final int offset;
-    private final String delim;
-    private final String[] lineData;
+    private final Object[] lineData;
     private final int lineSize;
     private int rows;
     int labelId = 2;
-    private LineData.Header[] headers;
+    private Header[] headers;
     private int propertyCount;
     private boolean hasIndex=false;
+    private final Chunker chunker;
+    private boolean done;
 
-    public RowData(String header, String delim, int offset) {
+    public ChunkerRowData(Reader reader, char delim, int offset) {
         this.offset = offset;
-        this.delim = delim;
-        String[] fields = header.split(delim);
-        lineSize = fields.length;
-        lineData = new String[lineSize];
-        this.headers = createHeaders(fields);
+        chunker = new Chunker(reader, delim);
+        this.headers = createHeaders(readHeader());
+        lineSize=headers.length;
+        lineData = new Object[lineSize];
         createMapData(lineSize, offset);
     }
 
-    private Header[] createHeaders(String[] fields) {
-        Header[] headers = new Header[fields.length];
-        for (int i = 0; i < fields.length; i++) {
-            String[] parts=fields[i].split(":");
+    private Collection<String> readHeader() {
+        String value;
+        Collection<String> result=new ArrayList<String>();
+        do {
+            value = nextWord();
+            if (Chunker.NO_VALUE != value && Chunker.EOL != value && Chunker.EOF != value) {
+                result.add(value);
+            }
+        } while (value!=Chunker.EOF && value!=Chunker.EOL);
+        return result;
+    }
+
+    private String nextWord() {
+        try {
+            return chunker.nextWord();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private boolean readLine() {
+        String value = null;
+        int i=0;
+        do {
+            if (i==lineSize) break;
+            value = nextWord();
+            if (Chunker.EOL == value || Chunker.EOF == value) break;
+            if (Chunker.NO_VALUE != value) {
+                lineData[i] = headers[i].type == Type.STRING ? value : headers[i].type.convert(value);
+            } else {
+                lineData[i] = null;
+            }
+            i++;
+        } while (value!=Chunker.EOF && value!=Chunker.EOL);
+        return value != Chunker.EOF;
+    }
+
+    private Header[] createHeaders(Collection<String> fields) {
+        Header[] headers = new Header[fields.size()];
+        int i=0;
+        for (String field : fields) {
+            String[] parts=field.split(":");
             final String name = parts[0];
             final String indexName = parts.length > 2 ? parts[2] : null;
             Type type = Type.fromString(parts.length > 1 ? parts[1] : null);
@@ -43,6 +82,7 @@ public class RowData implements LineData {
                 type=Type.LABEL;
             }
             headers[i]=new Header(i, name, type, indexName);
+            i++;
             hasIndex |= indexName != null;
         }
         return headers;
@@ -59,7 +99,8 @@ public class RowData implements LineData {
 
     @Override
     public boolean processLine(String line) {
-        this.propertyCount = parse(line);
+        if (done) return false;
+        this.propertyCount = parse();
         return true;
     }
 
@@ -101,25 +142,16 @@ public class RowData implements LineData {
 
     @Override
     public Object getValue(int column) {
-        return getHeader(column).type.convert(lineData[column]);
+        return lineData[column];
     }
 
     private Header getHeader(int column) {
         return headers[column];
     }
 
-    private int parse(String line) {
+    private int parse() {
         rows++;
-        final StringTokenizer st = new StringTokenizer(line, delim,true);
-        for (int i = 0; i < lineSize; i++) {
-            String value = st.hasMoreTokens() ? st.nextToken() : delim;
-            if (value.equals(delim)) {
-                lineData[i] = null;
-            } else {
-                lineData[i] = value.trim().isEmpty() ? null : value;
-                if (i< lineSize -1 && st.hasMoreTokens()) st.nextToken();
-            }
-        }
+        done = readLine();
         return collectNonNullInData();
     }
 
@@ -134,8 +166,8 @@ public class RowData implements LineData {
         return count;
     }
 
-    public Map<String,Object> updateMap(String line, Object... header) {
-        processLine(line);
+    public Map<String,Object> updateMap(Object... header) {
+        processLine(null);
 
         // todo deprecate
         if (header.length > 0) {

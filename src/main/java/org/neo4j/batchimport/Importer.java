@@ -1,5 +1,6 @@
 package org.neo4j.batchimport;
 
+import org.neo4j.batchimport.importer.ChunkerRowData;
 import org.neo4j.batchimport.importer.RelType;
 import org.neo4j.batchimport.importer.RowData;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
@@ -18,23 +19,28 @@ import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.FULLTEXT_CON
 public class Importer {
     private static Report report;
     private BatchInserter db;
-    private BatchInserterIndexProvider lucene;
+    private BatchInserterIndexProvider indexProvider;
     Map<String,BatchInserterIndex> indexes=new HashMap<String, BatchInserterIndex>();
 
-    public Importer(File graphDb, Collection<IndexInfo> indexInfos) {
-        Map<String, String> config = Utils.config();
-                
+    public Importer(File graphDb, final Map<String, String> config) {
         db = createBatchInserter(graphDb, config);
-        lucene = createIndexProvider();
+
+        indexProvider = createIndexProvider();
+        Collection<IndexInfo> indexInfos = Utils.extractIndexInfos(config);
         if (indexInfos!=null) {
             for (IndexInfo indexInfo : indexInfos) {
-                BatchInserterIndex index = indexInfo.elementType.equals("node_index") ? nodeIndexFor(indexInfo.indexName, indexInfo.indexType) : relationshipIndexFor(indexInfo.indexName, indexInfo.indexType);
+                BatchInserterIndex index = indexInfo.isNodeIndex() ? nodeIndexFor(indexInfo.indexName, indexInfo.indexType) : relationshipIndexFor(indexInfo.indexName, indexInfo.indexType);
                 indexes.put(indexInfo.indexName, index);
             }
         }
 
         report = createReport();
     }
+
+    /*
+    node_index.foo=exact:node_index.txt
+
+     */
 
     protected StdOutReport createReport() {
         return new StdOutReport(10 * 1000 * 1000, 100);
@@ -48,17 +54,11 @@ public class Importer {
         return BatchInserters.inserter(graphDb.getAbsolutePath(), config);
     }
 
-    static class IndexInfo {
-        IndexInfo(String[] args, int offset) {
-            this.elementType = args[offset];
-            this.indexName = args[offset+1];
-            this.indexType = args[offset+2];
-            this.indexFileName = args[offset+3];
-        }
-
-        public final String elementType, indexName, indexType, indexFileName;
-    }
-
+    // todo multiple nodes and rels files
+    // todo nodes and rels-files in config
+    // todo graphdb in config
+    // todo option to keep graphdb
+    // todo option to choose opencvs CSV vs TSV
     public static void main(String[] args) throws IOException {
         if (args.length < 3) {
             System.err.println("Usage java -jar batchimport.jar data/dir nodes.csv relationships.csv [node_index node-index-name fulltext|exact nodes_index.csv rel_index rel-index-name fulltext|exact rels_index.csv ....]");
@@ -71,7 +71,11 @@ public class Importer {
         if (graphDb.exists()) {
             FileUtils.deleteRecursively(graphDb);
         }
-        Importer importer = new Importer(graphDb,indexes);
+        final Map<String, String> config = Utils.config();
+        for (IndexInfo index : indexes) {
+            index.addToConfig(config);
+        }
+        Importer importer = new Importer(graphDb, config);
         try {
             if (nodesFile.exists()) {
                 importer.importNodes(new FileReader(nodesFile));
@@ -86,7 +90,7 @@ public class Importer {
             }
 
             for (IndexInfo indexInfo : indexes) {
-                importer.importIndex(indexInfo);
+                if (indexInfo.shouldImportFile()) importer.importIndex(indexInfo);
             }
 		} finally {
             importer.finish();
@@ -102,21 +106,22 @@ public class Importer {
     }
 
     void finish() {
-        lucene.shutdown();
+        indexProvider.shutdown();
         db.shutdown();
         report.finish();
     }
 
     void importNodes(Reader reader) throws IOException {
         BufferedReader bf = new BufferedReader(reader);
-        final LineData data = new RowData(bf.readLine(), "\t", 0);
-        String line;
+        final LineData data = new ChunkerRowData(bf, '\t', 0);
         report.reset();
-        while ((line = bf.readLine()) != null) {
-            final LineData lineData = data.processLine(line);
-            final long id = db.createNode(lineData.getProperties());
-            for (Map.Entry<String, Map<String, Object>> entry : lineData.getIndexData().entrySet()) {
-                indexFor(entry.getKey()).add(id, entry.getValue());
+        while (data.processLine(null)) {
+            final long id = db.createNode(data.getProperties());
+            for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+                final BatchInserterIndex index = indexFor(entry.getKey());
+                if (index==null)
+                    throw new IllegalStateException("Index "+entry.getKey()+" not configured.");
+                index.add(id, entry.getValue());
             }
             report.dots();
         }
@@ -139,13 +144,13 @@ public class Importer {
         report.reset();
 
         while ((line = bf.readLine()) != null) {
-            final LineData lineData = data.processLine(line);
+            data.processLine(line);
             final Map<String, Object> properties = data.getProperties();
             final long start = id(data, 0);
             final long end = id(data, 1);
             final RelType type = relType.update(data.getTypeLabels()[0]);
             final long id = db.createRelationship(start, end, type, properties);
-            for (Map.Entry<String, Map<String, Object>> entry : lineData.getIndexData().entrySet()) {
+            for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
                 indexFor(entry.getKey()).add(id, entry.getValue());
             }
             report.dots();
@@ -180,11 +185,11 @@ public class Importer {
     }
 
     private BatchInserterIndex nodeIndexFor(String indexName, String indexType) {
-        return lucene.nodeIndex(indexName, configFor(indexType));
+        return indexProvider.nodeIndex(indexName, configFor(indexType));
     }
 
     private BatchInserterIndex relationshipIndexFor(String indexName, String indexType) {
-        return lucene.relationshipIndex(indexName, configFor(indexType));
+        return indexProvider.relationshipIndex(indexName, configFor(indexType));
     }
 
     private Map<String, String> configFor(String indexType) {

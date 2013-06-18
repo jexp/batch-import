@@ -9,7 +9,8 @@ public class DataTest {
     @Test
     public void testConvertType() throws Exception {
         RowData data = new RowData("a:int\tb:float\tc:float", "\t", 0);
-        Map<String,Object> row = data.processLine("100\t100.0\t1E+10").getProperties();
+        data.processLine("100\t100.0\t1E+10");
+        Map<String,Object> row = data.getProperties();
         assertEquals(100, row.get("a"));
         assertEquals(true,row.get("b") instanceof Float);
         assertEquals(100.0F, row.get("b"));

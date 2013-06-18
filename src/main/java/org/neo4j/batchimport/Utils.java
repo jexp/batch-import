@@ -8,6 +8,8 @@ import org.neo4j.kernel.impl.nioneo.store.RelationshipRecord;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -81,5 +83,14 @@ public class Utils {
             System.out.println(e.getMessage());
         }
         return config;
+    }
+
+    static Collection<IndexInfo> extractIndexInfos(Map<String, String> config) {
+        Collection<IndexInfo>  result=new ArrayList<IndexInfo>();
+        for (Map.Entry<String, String> entry : config.entrySet()) {
+            final IndexInfo info = IndexInfo.fromConfigEntry(entry);
+            if (info!=null) result.add(info);
+        }
+        return result;
     }
 }
