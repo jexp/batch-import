@@ -1,4 +1,4 @@
-package org.neo4j.batchimport;
+package org.neo4j.batchimport.csv;
 
 import org.junit.Test;
 import org.neo4j.batchimport.utils.Chunker;

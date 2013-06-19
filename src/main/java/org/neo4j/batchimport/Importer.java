@@ -1,7 +1,11 @@
 package org.neo4j.batchimport;
 
+import org.neo4j.batchimport.importer.ChunkerLineData;
+import org.neo4j.batchimport.importer.CsvLineData;
 import org.neo4j.batchimport.importer.RelType;
-import org.neo4j.batchimport.importer.RowData;
+import org.neo4j.batchimport.index.MapDbCachingIndexProvider;
+import org.neo4j.batchimport.utils.Config;
+import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
@@ -11,20 +15,33 @@ import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
 
 import java.io.*;
 import java.util.*;
+import java.util.zip.GZIPInputStream;
 
 import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.EXACT_CONFIG;
 import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.FULLTEXT_CONFIG;
 
 public class Importer {
+    private static final Map<String, String> SPATIAL_CONFIG = Collections.singletonMap(IndexManager.PROVIDER,"spatial");
     private static Report report;
+    private final Config config;
     private BatchInserter db;
-    private BatchInserterIndexProvider lucene;
-    
-    public Importer(File graphDb) {
-        Map<String, String> config = Utils.config();
-                
+    private BatchInserterIndexProvider indexProvider;
+    Map<String,BatchInserterIndex> indexes=new HashMap<String, BatchInserterIndex>();
+
+    public Importer(File graphDb, final Config config) {
+        this.config = config;
         db = createBatchInserter(graphDb, config);
-        lucene = createIndexProvider();
+
+        final boolean luceneOnlyIndex = config.isCachedIndexDisabled();
+        indexProvider = createIndexProvider(luceneOnlyIndex);
+        Collection<IndexInfo> indexInfos = config.getIndexInfos();
+        if (indexInfos!=null) {
+            for (IndexInfo indexInfo : indexInfos) {
+                BatchInserterIndex index = indexInfo.isNodeIndex() ? nodeIndexFor(indexInfo.indexName, indexInfo.indexType) : relationshipIndexFor(indexInfo.indexName, indexInfo.indexType);
+                indexes.put(indexInfo.indexName, index);
+            }
+        }
+
         report = createReport();
     }
 
@@ -32,96 +49,102 @@ public class Importer {
         return new StdOutReport(10 * 1000 * 1000, 100);
     }
 
-    protected LuceneBatchInserterIndexProvider createIndexProvider() {
-        return new LuceneBatchInserterIndexProvider(db);
+    protected BatchInserterIndexProvider createIndexProvider(boolean luceneOnlyIndex) {
+        return luceneOnlyIndex ? new LuceneBatchInserterIndexProvider(db) : new MapDbCachingIndexProvider(db);
     }
 
-    protected BatchInserter createBatchInserter(File graphDb, Map<String, String> config) {
-        return BatchInserters.inserter(graphDb.getAbsolutePath(), config);
+    protected BatchInserter createBatchInserter(File graphDb, Config config) {
+        return BatchInserters.inserter(graphDb.getAbsolutePath(), config.getConfigData());
     }
 
+    // todo multiple nodes and rels files
+    // todo nodes and rels-files in config
+    // todo graphdb in config
     public static void main(String[] args) throws IOException {
-        if (args.length < 3) {
-            System.err.println("Usage java -jar batchimport.jar data/dir nodes.csv relationships.csv [node_index node-index-name fulltext|exact nodes_index.csv rel_index rel-index-name fulltext|exact rels_index.csv ....]");
-        }
-        File graphDb = new File(args[0]);
-        File nodesFile = new File(args[1]);
-        File relationshipsFile = new File(args[2]);
+        System.err.println("Usage java -jar batchimport.jar data/dir nodes.csv relationships.csv [node_index node-index-name fulltext|exact nodes_index.csv rel_index rel-index-name fulltext|exact rels_index.csv ....]");
 
-        if (graphDb.exists()) {
+        final Config config = Config.convertArgumentsToConfig(args);
+
+        File graphDb = new File(config.getGraphDbDirectory());
+        if (graphDb.exists() && !config.keepDatabase()) {
             FileUtils.deleteRecursively(graphDb);
         }
-        Importer importer = new Importer(graphDb);
-        try {
-            if (nodesFile.exists()) {
-                importer.importNodes(new FileReader(nodesFile));
-            } else {
-                System.err.println("Nodes file "+nodesFile+" does not exist");
-            }
 
-            if (relationshipsFile.exists()) {
-                importer.importRelationships(new FileReader(relationshipsFile));
-            } else {
-                System.err.println("Relationships file "+relationshipsFile+" does not exist");
-            }
-
-
-            for (int i = 3; i < args.length; i = i + 4) {
-                String elementType = args[i];
-                String indexName = args[i + 1];
-                String indexType = args[i + 2];
-                String indexFileName = args[i + 3];
-                importer.importIndex(elementType, indexName, indexType, indexFileName);
-            }
-		} finally {
-            importer.finish();
-        }
+        Importer importer = new Importer(graphDb, config);
+        importer.doImport();
     }
 
     void finish() {
-        lucene.shutdown();
+        indexProvider.shutdown();
         db.shutdown();
         report.finish();
     }
 
     void importNodes(Reader reader) throws IOException {
-        BufferedReader bf = new BufferedReader(reader);
-        final RowData data = new RowData(bf.readLine(), "\t", 0);
-        String line;
+        final LineData data = createLineData(reader, 0);
         report.reset();
-        while ((line = bf.readLine()) != null) {
-            db.createNode(data.updateMap(line));
+        while (data.processLine(null)) {
+            final long id = db.createNode(data.getProperties());
+            for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+                final BatchInserterIndex index = indexFor(entry.getKey());
+                if (index==null)
+                    throw new IllegalStateException("Index "+entry.getKey()+" not configured.");
+                index.add(id, entry.getValue());
+            }
             report.dots();
         }
         report.finishImport("Nodes");
     }
 
+    private long lookup(String index,String property,Object value) {
+        return indexFor(index).get(property, value).getSingle();
+    }
+
+    private BatchInserterIndex indexFor(String index) {
+        return indexes.get(index);
+    }
+
     void importRelationships(Reader reader) throws IOException {
-        BufferedReader bf = new BufferedReader(reader);
-        final RowData data = new RowData(bf.readLine(), "\t", 3);
-        Object[] rel = new Object[3];
+        final int offset = 3;
+        final LineData data = createLineData(reader, offset);
         final RelType relType = new RelType();
-        String line;
         report.reset();
-        while ((line = bf.readLine()) != null) {
-            final Map<String, Object> properties = data.updateMap(line, rel);
-            db.createRelationship(id(rel[0]), id(rel[1]), relType.update(rel[2]), properties);
+
+        while (data.processLine(null)) {
+            final Map<String, Object> properties = data.getProperties();
+            final long start = id(data, 0);
+            final long end = id(data, 1);
+            final RelType type = relType.update(data.getTypeLabels()[0]);
+            final long id = db.createRelationship(start, end, type, properties);
+            for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+                indexFor(entry.getKey()).add(id, entry.getValue());
+            }
             report.dots();
         }
         report.finishImport("Relationships");
     }
 
-    void importIndex(String indexName, BatchInserterIndex index, Reader reader) throws IOException {
+    private LineData createLineData(Reader reader, int offset) {
+        final boolean useQuotes = config.quotesEnabled();
+        if (useQuotes) return new CsvLineData(reader, config.getDelimChar(this),offset);
+        return new ChunkerLineData(reader, config.getDelimChar(this), offset);
+    }
 
-        BufferedReader bf = new BufferedReader(reader);
-        
-        final RowData data = new RowData(bf.readLine(), "\t", 1);
-        Object[] node = new Object[1];
-        String line;
+    private long id(LineData data, int column) {
+        final LineData.Header header = data.getHeader()[column];
+        final Object value = data.getValue(column);
+        if (header.indexName == null) {
+            return id(value);
+        }
+        return lookup(header.indexName, header.name, value);
+    }
+
+    void importIndex(String indexName, BatchInserterIndex index, Reader reader) throws IOException {
+        final LineData data = createLineData(reader, 1);
         report.reset();
-        while ((line = bf.readLine()) != null) {        
-            final Map<String, Object> properties = data.updateMap(line, node);
-            index.add(id(node[0]), properties);
+        while (data.processLine(null)) {
+            final Map<String, Object> properties = data.getProperties();
+            index.add(id(data.getValue(0)), properties);
             report.dots();
         }
                 
@@ -129,28 +152,63 @@ public class Importer {
     }
 
     private BatchInserterIndex nodeIndexFor(String indexName, String indexType) {
-        return lucene.nodeIndex(indexName, configFor(indexType));
+        return indexProvider.nodeIndex(indexName, configFor(indexType));
     }
 
     private BatchInserterIndex relationshipIndexFor(String indexName, String indexType) {
-        return lucene.relationshipIndex(indexName, configFor(indexType));
+        return indexProvider.relationshipIndex(indexName, configFor(indexType));
     }
 
     private Map<String, String> configFor(String indexType) {
-        return indexType.equals("fulltext") ? FULLTEXT_CONFIG : EXACT_CONFIG;
+        if (indexType.equalsIgnoreCase("fulltext")) return FULLTEXT_CONFIG;
+        if (indexType.equalsIgnoreCase("spatial")) return SPATIAL_CONFIG;
+        return EXACT_CONFIG;
     }
 
     private long id(Object id) {
         return Long.parseLong(id.toString());
     }
 
-    private void importIndex(String elementType, String indexName, String indexType, String indexFileName) throws IOException {
-        File indexFile = new File(indexFileName);
+    private void importIndex(IndexInfo indexInfo) throws IOException {
+        File indexFile = new File(indexInfo.indexFileName);
         if (!indexFile.exists()) {
             System.err.println("Index file "+indexFile+" does not exist");
             return;
         }
-        BatchInserterIndex index = elementType.equals("node_index") ? nodeIndexFor(indexName, indexType) : relationshipIndexFor(indexName, indexType);
-        importIndex(indexName, index, new FileReader(indexFile));
+        importIndex(indexInfo.indexName, indexes.get(indexInfo.indexName), createFileReader(indexFile));
     }
+
+    private void doImport() throws IOException {
+        try {
+            for (File file : config.getNodesFiles()) {
+                importNodes(createFileReader(file));
+            }
+
+            for (File file : config.getRelsFiles()) {
+                importRelationships(createFileReader(file));
+            }
+
+            for (IndexInfo indexInfo : config.getIndexInfos()) {
+                if (indexInfo.shouldImportFile()) importIndex(indexInfo);
+            }
+		} finally {
+            finish();
+        }
+    }
+
+    final static int BUFFERED_READER_BUFFER = 4096*512;
+
+    private Reader createFileReader(File file) {
+        try {
+            final String fileName = file.getName();
+            if (fileName.endsWith(".gz") || fileName.endsWith(".zip")) {
+                return new InputStreamReader(new GZIPInputStream(new BufferedInputStream(new FileInputStream(file)),BUFFERED_READER_BUFFER));
+            }
+            final FileReader fileReader = new FileReader(file);
+            return new BufferedReader(fileReader,BUFFERED_READER_BUFFER);
+        } catch(Exception e) {
+            throw new IllegalArgumentException("Error reading file "+file+" "+e.getMessage(),e);
+        }
+    }
+
 }

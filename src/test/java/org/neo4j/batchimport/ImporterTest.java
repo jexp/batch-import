@@ -2,41 +2,49 @@ package org.neo4j.batchimport;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
+import org.mockito.Matchers;
+import org.neo4j.batchimport.index.LongIterableIndexHits;
+import org.neo4j.batchimport.utils.Config;
+import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
 
 import java.io.File;
 import java.io.StringReader;
 import java.util.Map;
 
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.argThat;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.atLeastOnce;
-import static org.mockito.Mockito.verify;
+import static java.util.Arrays.*;
+import static org.mockito.Matchers.*;
+import static org.mockito.Mockito.*;
 import static org.neo4j.helpers.collection.MapUtil.map;
 
 public class ImporterTest {
 
     private BatchInserter inserter;
-    private LuceneBatchInserterIndexProvider index;
+    private LuceneBatchInserterIndexProvider provider;
     private Importer importer;
+    private BatchInserterIndex index;
 
     @Before
     public void setUp() throws Exception {
-        inserter = Mockito.mock(BatchInserter.class);
-        index = Mockito.mock(LuceneBatchInserterIndexProvider.class);
+        inserter = mock(BatchInserter.class);
+        provider = mock(LuceneBatchInserterIndexProvider.class);
+        index = mock(BatchInserterIndex.class);
+        when(provider.nodeIndex(eq("index-a"),anyMap())).thenReturn(index);
 
-        importer = new Importer(File.createTempFile("test", "db")) {
+        final Map<String, String> configData = Config.config("batch.properties");
+        new IndexInfo("node_index", "index-a", "exact", null).addToConfig(configData);
+        importer = new Importer(File.createTempFile("test", "db"), new Config(configData)) {
             @Override
-            protected BatchInserter createBatchInserter(File graphDb, Map<String, String> config) {
+            protected BatchInserter createBatchInserter(File graphDb, Config config) {
                 return inserter;
             }
 
             @Override
-            protected LuceneBatchInserterIndexProvider createIndexProvider() {
-                return index;
+            protected BatchInserterIndexProvider createIndexProvider(boolean luceneOnlyIndex) {
+                return provider;
             }
         };
     }
@@ -58,6 +66,22 @@ public class ImporterTest {
         importer.importNodes(new StringReader("a\tb\nfoo\tbar"));
         importer.finish();
         verify(inserter, atLeastOnce()).createNode(eq(map("a", "foo","b","bar")));
+    }
+    @Test
+    public void testImportNodeWithIndex() throws Exception {
+        importer.importNodes(new StringReader("a:string:index-a\tb\nfoo\tbar"));
+        importer.finish();
+        verify(inserter, atLeastOnce()).createNode(eq(map("a", "foo", "b", "bar")));
+        verify(index, atLeastOnce()).add(eq(0L), eq(map("a", "foo")));
+    }
+
+    @Test
+    public void testImportRelWithIndexLookup() throws Exception {
+        when(index.get("a","foo")).thenReturn(new LongIterableIndexHits(asList(42L)));
+        importer.importRelationships(new StringReader("a:string:index-a\tb\tTYPE\nfoo\t123\tFOOBAR"));
+        importer.finish();
+        verify(index, atLeastOnce()).get(eq("a"), eq("foo"));
+        verify(inserter, atLeastOnce()).createRelationship(eq(42L), eq(123L), Matchers.any(RelationshipType.class), eq(map()));
     }
 
     @Test

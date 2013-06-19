@@ -1,0 +1,12 @@
+2013-06-19
+==========
+* import files can be now compressed as .gz or .zip
+* supports multiple csv files for nodes, relationships, comma separated
+* supports automatic indexing with headers like "name:string:users"
+* supports index lookups for relationships for start/end fields "name:string:users" and the litaral values
+* supports now config file based setup
+* supports keeping the database instead of cleaning
+* supports opencsv as reader, alternative delimiters, quotes
+* supports caching in index lookups using MapDB in front of lucene
+* added faster default CSV reader
+* added new type LABEL that will also be used for node-labels in the future

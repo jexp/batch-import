@@ -1,6 +1,12 @@
 package org.neo4j.batchimport.importer;
 
 public enum Type {
+    LABEL {
+        @Override
+        public Object convert(String value) {
+            return value.trim().split("\\s*,\\s*");
+        }
+    },
     BOOLEAN {
         @Override
         public Object convert(String value) {
