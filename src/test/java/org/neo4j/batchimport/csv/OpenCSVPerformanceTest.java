@@ -3,6 +3,7 @@ package org.neo4j.batchimport.csv;
 import au.com.bytecode.opencsv.CSVReader;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.io.*;
@@ -13,6 +14,7 @@ import static org.neo4j.batchimport.csv.PerformanceTestFile.*;
  * @author mh
  * @since 11.06.13
  */
+@Ignore("Performance")
 public class OpenCSVPerformanceTest {
 
     @Before

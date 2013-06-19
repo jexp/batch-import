@@ -50,7 +50,7 @@ public class RelationshipUpdateCacheTest {
         },1000,RelationshipUpdateCache.BUCKETS,TEST_RELS_PER_BUFFER);
         final int cnt = TEST_RELS_PER_BUFFER;
         // almost fill buffer except last element
-        for (int i=0;i<cnt-1;i++)
+        for (int i=0;i<cnt;i++)
             cache.update(1,true,-1,0x01FFFFFFFFL);
 
         assertEquals(0,count.get());
@@ -63,7 +63,7 @@ public class RelationshipUpdateCacheTest {
         assertEquals(cnt, count.get());
         // close should cause flush
         cache.close();
-        assertEquals(cnt + 1, count.get());
+        assertEquals(cnt + 2, count.get());
     }
 
     private void assertAddRelationship(final long relId, final boolean outgoing, final long prevId, final long nextId) throws IOException {

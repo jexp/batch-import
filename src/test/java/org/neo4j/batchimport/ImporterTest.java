@@ -4,6 +4,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Matchers;
 import org.neo4j.batchimport.index.LongIterableIndexHits;
+import org.neo4j.batchimport.utils.Config;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
@@ -33,16 +34,16 @@ public class ImporterTest {
         index = mock(BatchInserterIndex.class);
         when(provider.nodeIndex(eq("index-a"),anyMap())).thenReturn(index);
 
-        final Map<String, String> config = Utils.config();
-        new IndexInfo("node_index", "index-a", "exact", null).addToConfig(config);
-        importer = new Importer(File.createTempFile("test", "db"), config) {
+        final Map<String, String> configData = Config.config("batch.properties");
+        new IndexInfo("node_index", "index-a", "exact", null).addToConfig(configData);
+        importer = new Importer(File.createTempFile("test", "db"), new Config(configData)) {
             @Override
-            protected BatchInserter createBatchInserter(File graphDb, Map<String, String> config) {
+            protected BatchInserter createBatchInserter(File graphDb, Config config) {
                 return inserter;
             }
 
             @Override
-            protected BatchInserterIndexProvider createIndexProvider() {
+            protected BatchInserterIndexProvider createIndexProvider(boolean luceneOnlyIndex) {
                 return provider;
             }
         };
@@ -80,7 +81,7 @@ public class ImporterTest {
         importer.importRelationships(new StringReader("a:string:index-a\tb\tTYPE\nfoo\t123\tFOOBAR"));
         importer.finish();
         verify(index, atLeastOnce()).get(eq("a"), eq("foo"));
-        verify(inserter, atLeastOnce()).createRelationship(eq(42L), eq(123L), Matchers.any(RelationshipType.class),eq(map()));
+        verify(inserter, atLeastOnce()).createRelationship(eq(42L), eq(123L), Matchers.any(RelationshipType.class), eq(map()));
     }
 
     @Test

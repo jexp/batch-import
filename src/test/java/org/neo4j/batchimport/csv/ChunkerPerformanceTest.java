@@ -2,6 +2,7 @@ package org.neo4j.batchimport.csv;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.batchimport.importer.RowData;
 import org.neo4j.batchimport.utils.Chunker;
@@ -12,6 +13,7 @@ import java.io.*;
  * @author mh
  * @since 11.06.13
  */
+@Ignore("Performance")
 public class ChunkerPerformanceTest {
 
     @Before

@@ -1,76 +1,40 @@
 package org.neo4j.batchimport.importer;
 
 import org.neo4j.batchimport.LineData;
-import org.neo4j.batchimport.structs.PropertyHolder;
-import org.neo4j.batchimport.utils.Chunker;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.util.*;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.neo4j.helpers.collection.MapUtil.map;
 
-public class ChunkerRowData implements LineData {
-    private Object[] properties;
-    private final int offset;
-    private final Object[] lineData;
-    private final int lineSize;
-    private int rows;
+public abstract class AbstractLineData implements LineData {
+    protected final int offset;
+    protected Object[] lineData;
+    protected int lineSize;
+    protected Header[] headers;
     int labelId = 2;
-    private Header[] headers;
+    private Object[] properties;
+    private int rows;
     private int propertyCount;
     private boolean hasIndex=false;
-    private final Chunker chunker;
     private boolean done;
 
-    public ChunkerRowData(Reader reader, char delim, int offset) {
+    public AbstractLineData(int offset) {
         this.offset = offset;
-        chunker = new Chunker(reader, delim);
-        this.headers = createHeaders(readHeader());
+    }
+
+    protected void initHeaders(Header[] headers) {
+        this.headers = headers;
         lineSize=headers.length;
         lineData = new Object[lineSize];
-        createMapData(lineSize, offset);
     }
+    protected abstract String[] readRawRow();
 
-    private Collection<String> readHeader() {
-        String value;
-        Collection<String> result=new ArrayList<String>();
-        do {
-            value = nextWord();
-            if (Chunker.NO_VALUE != value && Chunker.EOL != value && Chunker.EOF != value) {
-                result.add(value);
-            }
-        } while (value!=Chunker.EOF && value!=Chunker.EOL);
-        return result;
-    }
+    protected abstract boolean readLine();
 
-    private String nextWord() {
-        try {
-            return chunker.nextWord();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private boolean readLine() {
-        String value = null;
-        int i=0;
-        do {
-            if (i==lineSize) break;
-            value = nextWord();
-            if (Chunker.EOL == value || Chunker.EOF == value) break;
-            if (Chunker.NO_VALUE != value) {
-                lineData[i] = headers[i].type == Type.STRING ? value : headers[i].type.convert(value);
-            } else {
-                lineData[i] = null;
-            }
-            i++;
-        } while (value!=Chunker.EOF && value!=Chunker.EOL);
-        return value != Chunker.EOF;
-    }
-
-    private Header[] createHeaders(Collection<String> fields) {
-        Header[] headers = new Header[fields.size()];
+    protected Header[] createHeaders(String[] fields) {
+        Header[] headers = new Header[fields.length];
         int i=0;
         for (String field : fields) {
             String[] parts=field.split(":");
@@ -88,7 +52,7 @@ public class ChunkerRowData implements LineData {
         return headers;
     }
 
-    private Object[] createMapData(int lineSize, int offset) {
+    protected Object[] createMapData(int lineSize, int offset) {
         int dataSize = Math.max(0,lineSize - offset);
         properties = new Object[dataSize*2];
         for (int i = offset; i < dataSize; i++) {
@@ -151,7 +115,7 @@ public class ChunkerRowData implements LineData {
 
     private int parse() {
         rows++;
-        done = readLine();
+        done = !readLine();
         return collectNonNullInData();
     }
 
