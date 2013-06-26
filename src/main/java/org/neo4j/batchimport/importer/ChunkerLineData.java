@@ -25,10 +25,10 @@ public class ChunkerLineData extends AbstractLineData {
         Collection<String> result=new ArrayList<String>();
         do {
             value = nextWord();
-            if (Chunker.NO_VALUE != value && Chunker.EOL != value && Chunker.EOF != value) {
+            if (Chunker.NO_VALUE != value && !isEndOfLineOrFile(value)) {
                 result.add(value);
             }
-        } while (value!=Chunker.EOF && value!=Chunker.EOL);
+        } while (!isEndOfLineOrFile(value));
         return result.toArray(new String[result.size()]);
     }
 
@@ -44,16 +44,25 @@ public class ChunkerLineData extends AbstractLineData {
         String value = null;
         int i=0;
         do {
-            if (i==lineSize) break;
             value = nextWord();
-            if (Chunker.EOL == value || Chunker.EOF == value) break;
+            if (isEndOfLineOrFile(value)) break;
+            if (i==lineSize) {
+                do {
+                    value = nextWord();
+                } while (!isEndOfLineOrFile(value));
+                break;
+            }
             if (Chunker.NO_VALUE != value) {
                 lineData[i] = headers[i].type == Type.STRING ? value : headers[i].type.convert(value);
             } else {
                 lineData[i] = null;
             }
             i++;
-        } while (value!=Chunker.EOF && value!=Chunker.EOL);
+        } while (!isEndOfLineOrFile(value));
         return value != Chunker.EOF;
+    }
+
+    private boolean isEndOfLineOrFile(String value) {
+        return Chunker.EOL == value || Chunker.EOF == value;
     }
 }

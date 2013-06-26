@@ -81,6 +81,18 @@ public class ChunkerRowDataTest {
         assertEquals("2",map.get("b"));
         assertEquals("3",map.get("c"));
     }
+    @Test
+    public void testNormalCellsTwoRows() throws Exception {
+        ChunkerLineData rowData = new ChunkerLineData(new StringReader("a\tb\tc\n1\t2\t3\n4\t5\t6"), '\t', 0);
+        final Map<String,Object> row1 = rowData.updateMap();
+        assertEquals("1", row1.get("a"));
+        assertEquals("2", row1.get("b"));
+        assertEquals("3",row1.get("c"));
+        final Map<String,Object> row2 = rowData.updateMap();
+        assertEquals("4", row2.get("a"));
+        assertEquals("5", row2.get("b"));
+        assertEquals("6",row2.get("c"));
+    }
 
     @Test
     public void testConvert() throws Exception {
