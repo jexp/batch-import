@@ -1,3 +1,7 @@
+2013-06-27
+==========
+* supports array types
+
 2013-06-19
 ==========
 * import files can be now compressed as .gz or .zip
