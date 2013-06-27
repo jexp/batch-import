@@ -60,7 +60,14 @@ public enum Type {
         public Object convert(String value) {
             return value;
         }
-    };
+    },
+    STRING_ARRAY {
+        @Override
+        public Object convert(String value) {
+            return value.split(",");
+        }
+    },
+;
 
     public static Type fromString(String typeString) {
         if (typeString==null || typeString.isEmpty()) return Type.STRING;
