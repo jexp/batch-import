@@ -8,6 +8,8 @@ import org.neo4j.kernel.impl.nioneo.store.RelationshipRecord;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -56,30 +58,4 @@ public class Utils {
         return String.format("Node[%d] -> %d, .%d", record.getId(), record.getNextRel(), record.getNextProp());
     }
 
-    static Map<String, String> config() {
-        Map<String, String> config = new HashMap<String, String>();
-        try {
-            if (new File("batch.properties").exists()) {
-                System.out.println("Using Existing Configuration File");
-            } else {
-                System.out.println("Writing Configuration File to batch.properties");
-                FileWriter fw = new FileWriter("batch.properties");
-                fw.append("use_memory_mapped_buffers=true\n"
-                        + "neostore.nodestore.db.mapped_memory=100M\n"
-                        + "neostore.relationshipstore.db.mapped_memory=500M\n"
-                        + "neostore.propertystore.db.mapped_memory=1G\n"
-                        + "neostore.propertystore.db.strings.mapped_memory=200M\n"
-                        + "neostore.propertystore.db.arrays.mapped_memory=0M\n"
-                        + "neostore.propertystore.db.index.keys.mapped_memory=15M\n"
-                        + "neostore.propertystore.db.index.mapped_memory=15M");
-                fw.close();
-            }
-
-            config = MapUtil.load(new File("batch.properties"));
-
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
-        return config;
-    }
 }

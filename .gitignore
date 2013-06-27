@@ -1,3 +1,5 @@
+neo4j
+*.log
 .project
 .shell_history
 *.ipr
@@ -8,4 +10,5 @@ target
 *.csv
 .DS_Store
 .settings
+*.gz
 

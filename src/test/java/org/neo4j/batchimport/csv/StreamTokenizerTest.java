@@ -1,4 +1,4 @@
-package org.neo4j.batchimport;
+package org.neo4j.batchimport.csv;
 
 import org.junit.Test;
 import org.neo4j.batchimport.utils.Chunker;
@@ -6,6 +6,7 @@ import org.neo4j.batchimport.utils.Chunker;
 import java.io.*;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author mh
@@ -25,7 +26,7 @@ public class StreamTokenizerTest {
         final Chunker chunker = new Chunker(reader, '\t');
         readLine(header, chunker, "FOO", "42");
         readLine(header, chunker, "", "42");
-        assertEquals(null,chunker.nextWord());
+        assertEquals(Chunker.EOF,chunker.nextWord());
     }
 
     private void readLine(String[] header, Chunker st, Object...values) throws IOException {
@@ -39,5 +40,7 @@ public class StreamTokenizerTest {
         for (int i = 3; i < header.length; i++) {
             assertEquals(header[i], values[i - 3], st.nextWord());
         }
+        String token = st.nextWord();
+        assertTrue(Chunker.EOL==token || Chunker.EOF==token);
     }
 }

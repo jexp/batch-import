@@ -5,36 +5,39 @@ import org.neo4j.batchimport.LineData;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.StringTokenizer;
 
 import static org.neo4j.helpers.collection.MapUtil.map;
 
-public class RowData implements LineData {
-    private Object[] properties;
-    private final int offset;
-    private final String delim;
-    private final String[] lineData;
-    private final int lineSize;
-    private int rows;
+public abstract class AbstractLineData implements LineData {
+    protected final int offset;
+    protected Object[] lineData;
+    protected int lineSize;
+    protected Header[] headers;
     int labelId = 2;
-    private LineData.Header[] headers;
+    private Object[] properties;
+    private int rows;
     private int propertyCount;
     private boolean hasIndex=false;
+    private boolean done;
 
-    public RowData(String header, String delim, int offset) {
+    public AbstractLineData(int offset) {
         this.offset = offset;
-        this.delim = delim;
-        String[] fields = header.split(delim);
-        lineSize = fields.length;
-        lineData = new String[lineSize];
-        this.headers = createHeaders(fields);
-        createMapData(lineSize, offset);
     }
 
-    private Header[] createHeaders(String[] fields) {
+    protected void initHeaders(Header[] headers) {
+        this.headers = headers;
+        lineSize=headers.length;
+        lineData = new Object[lineSize];
+    }
+    protected abstract String[] readRawRow();
+
+    protected abstract boolean readLine();
+
+    protected Header[] createHeaders(String[] fields) {
         Header[] headers = new Header[fields.length];
-        for (int i = 0; i < fields.length; i++) {
-            String[] parts=fields[i].split(":");
+        int i=0;
+        for (String field : fields) {
+            String[] parts=field.split(":");
             final String name = parts[0];
             final String indexName = parts.length > 2 ? parts[2] : null;
             Type type = Type.fromString(parts.length > 1 ? parts[1] : null);
@@ -43,12 +46,13 @@ public class RowData implements LineData {
                 type=Type.LABEL;
             }
             headers[i]=new Header(i, name, type, indexName);
+            i++;
             hasIndex |= indexName != null;
         }
         return headers;
     }
 
-    private Object[] createMapData(int lineSize, int offset) {
+    protected Object[] createMapData(int lineSize, int offset) {
         int dataSize = Math.max(0,lineSize - offset);
         properties = new Object[dataSize*2];
         for (int i = offset; i < dataSize; i++) {
@@ -59,7 +63,8 @@ public class RowData implements LineData {
 
     @Override
     public boolean processLine(String line) {
-        this.propertyCount = parse(line);
+        if (done) return false;
+        this.propertyCount = parse();
         return true;
     }
 
@@ -101,25 +106,16 @@ public class RowData implements LineData {
 
     @Override
     public Object getValue(int column) {
-        return getHeader(column).type.convert(lineData[column]);
+        return lineData[column];
     }
 
     private Header getHeader(int column) {
         return headers[column];
     }
 
-    private int parse(String line) {
+    private int parse() {
         rows++;
-        final StringTokenizer st = new StringTokenizer(line, delim,true);
-        for (int i = 0; i < lineSize; i++) {
-            String value = st.hasMoreTokens() ? st.nextToken() : delim;
-            if (value.equals(delim)) {
-                lineData[i] = null;
-            } else {
-                lineData[i] = value.trim().isEmpty() ? null : value;
-                if (i< lineSize -1 && st.hasMoreTokens()) st.nextToken();
-            }
-        }
+        done = !readLine();
         return collectNonNullInData();
     }
 
@@ -134,8 +130,8 @@ public class RowData implements LineData {
         return count;
     }
 
-    public Map<String,Object> updateMap(String line, Object... header) {
-        processLine(line);
+    public Map<String,Object> updateMap(Object... header) {
+        processLine(null);
 
         // todo deprecate
         if (header.length > 0) {

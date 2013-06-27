@@ -81,7 +81,7 @@ public class DisruptorBatchInserter {
     }
 
     private void createHandlers(NeoStore neoStore, NodeStructFactory nodeStructFactory) {
-        propertyMappingHandlers = PropertyEncodingHandler.createHandlers(inserter);
+        propertyMappingHandlers = PropertyEncodingHandler.createHandlers(neoStore.getPropertyStore());
 
         propertyRecordCreatorHandler = new PropertyRecordCreatorHandler();
         relationshipIdHandler = new RelationshipIdHandler();

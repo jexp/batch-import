@@ -1,6 +1,7 @@
-package org.neo4j.batchimport.importer;
+package org.neo4j.batchimport.csv;
 
 import org.junit.Test;
+import org.neo4j.batchimport.importer.RowData;
 
 import java.util.Map;
 
