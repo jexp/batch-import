@@ -55,6 +55,13 @@ public class ImporterTest {
         importer.finish();
         verify(inserter, times(1)).createNode(eq(map("a", "foo")));
     }
+
+    @Test
+    public void testImportSimpleNodeWithNewlineAtEnd() throws Exception {
+        importer.importNodes(new StringReader("a\nfoo\n"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "foo")));
+    }
     @Test
     public void testImportSimpleNodeWithUmlauts() throws Exception {
         importer.importNodes(new StringReader("ö\näáß"));
@@ -97,6 +104,13 @@ public class ImporterTest {
         importer.finish();
         verify(inserter, times(1)).createRelationship(eq(1L), eq(2L), argThat(new RelationshipMatcher("TYPE")), eq(map("a", "foo")));
     }
+    @Test
+    public void testImportSimpleRelationshipWithNewlineOnce() throws Exception {
+        importer.importRelationships(new StringReader("start\tend\ttype\ta\n1\t2\tTYPE\tfoo\n"));
+        importer.finish();
+        verify(inserter, times(1)).createRelationship(eq(1L), eq(2L), argThat(new RelationshipMatcher("TYPE")), eq(map("a", "foo")));
+    }
+
     @Test
     public void testImportRelationshipWithIndividualTypes() throws Exception {
         importer.importRelationships(new StringReader("start\tend\ttype\ta:int\tb:float\tc:float\n1\t2\tTYPE\t10\t10.0\t1E+10"));

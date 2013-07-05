@@ -64,8 +64,7 @@ public abstract class AbstractLineData implements LineData {
     @Override
     public boolean processLine(String line) {
         if (done) return false;
-        this.propertyCount = parse();
-        return true;
+        return parse() > 0;
     }
 
     @Override
@@ -87,7 +86,7 @@ public abstract class AbstractLineData implements LineData {
     public Map<String, Map<String, Object>> getIndexData() {
         if (!hasIndex) return Collections.EMPTY_MAP;
         Map<String, Map<String, Object>> indexData = new HashMap<String, Map<String, Object>>();
-        for (int column = 0; column < headers.length; column++) {
+        for (int column = offset; column < headers.length; column++) {
             Header header = headers[column];
             if (header.indexName == null) continue;
 
@@ -101,7 +100,8 @@ public abstract class AbstractLineData implements LineData {
 
     @Override
     public String[] getTypeLabels() {
-        return (String[])getValue(labelId);
+        Object labels = getValue(labelId);
+        return labels instanceof String ? new String[]{ labels.toString() } : (String[]) labels;
     }
 
     @Override
@@ -120,14 +120,17 @@ public abstract class AbstractLineData implements LineData {
     }
 
     private int collectNonNullInData() {
-        int count = 0;
-        for (int i = offset; i < lineSize; i++) {
+        propertyCount=0;
+        int notnull = 0;
+        for (int i = 0; i < lineSize; i++) {
             if (lineData[i] == null) continue;
+            notnull++;
+            if (i<offset) continue;
             final Header header = getHeader(i);
-            properties[count++]= header.name;
-            properties[count++]= getValue(i);
+            properties[propertyCount++]= header.name;
+            properties[propertyCount++]= getValue(i);
         }
-        return count;
+        return notnull;
     }
 
     public Map<String,Object> updateMap(Object... header) {

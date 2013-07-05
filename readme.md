@@ -89,6 +89,8 @@ Example data for the files is a small family network
 
 ## Parameters
 
+*First parameter* MIGHT be the property-file name then it has to end with .properties, then this file will be used and all other parameters are consumed as usual
+
 *First parameter* is the graph database directory, a new db will be created in the directory except when `batch_import.keep_db=true` is set in `batch.properties`.
 
 *Second parameter* supply a comma separated list of nodes-files

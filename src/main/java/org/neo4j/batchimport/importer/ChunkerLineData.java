@@ -49,7 +49,7 @@ public class ChunkerLineData extends AbstractLineData {
             if (i==lineSize) {
                 do {
                     value = nextWord();
-                } while (!isEndOfLineOrFile(value));
+                } while (!isEndOfLineOrFile(value)); // consume until EOL
                 break;
             }
             if (Chunker.NO_VALUE != value) {
@@ -59,6 +59,9 @@ public class ChunkerLineData extends AbstractLineData {
             }
             i++;
         } while (!isEndOfLineOrFile(value));
+        if (i<lineSize) {
+            Arrays.fill(lineData,i,lineSize,null);
+        }
         return value != Chunker.EOF;
     }
 
