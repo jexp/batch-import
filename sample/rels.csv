@@ -1,0 +1,6 @@
+name:string:users	name:string:users	type	since	counter:int
+Michael	Selina	FATHER_OF 1998-07-10	1
+Michael	Rana	FATHER_OF 2007-09-15	2
+Michael	Selma	FATHER_OF 2008-05-03	3
+Rana	Selma	SISTER_OF 2008-05-03	5
+Selina	Rana	SISTER_OF 2007-09-15	7

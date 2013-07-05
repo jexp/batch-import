@@ -23,6 +23,8 @@ Example data for the files is a small family network
 
 ## Examples
 
+There is also a `sample` directory, please run from the main directory `sh sample/import.sh`
+
 ### nodes.csv
 
     name    age works_on
