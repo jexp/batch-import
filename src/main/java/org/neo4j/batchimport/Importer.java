@@ -34,6 +34,7 @@ public class Importer {
 
         final boolean luceneOnlyIndex = config.isCachedIndexDisabled();
         indexProvider = createIndexProvider(luceneOnlyIndex);
+        indexProvider = createIndexProvider(true);
         Collection<IndexInfo> indexInfos = config.getIndexInfos();
         if (indexInfos!=null) {
             for (IndexInfo indexInfo : indexInfos) {
@@ -90,6 +91,7 @@ public class Importer {
                 if (index==null)
                     throw new IllegalStateException("Index "+entry.getKey()+" not configured.");
                 index.add(id, entry.getValue());
+                index.flush();
             }
             report.dots();
         }

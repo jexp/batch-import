@@ -63,8 +63,8 @@ public abstract class AbstractLineData implements LineData {
 
     @Override
     public boolean processLine(String line) {
-        if (done) return false;
         this.propertyCount = parse();
+        if (done) return false;
         return true;
     }
 
