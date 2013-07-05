@@ -135,7 +135,7 @@ Selma   4
 In the relationships-file you can optionally specify that the start and end-node should be looked up from the index in the same way
 
 ````
-start:string:users	end:string:users	type	    since   counter:int
+name:string:users	name:string:users	type	    since   counter:int
 Michael     Selina   FATHER_OF	1998-07-10  1
 Michael     Rana   FATHER_OF 2007-09-15  2
 Michael     Selma   FATHER_OF 2008-05-03  3

@@ -108,6 +108,7 @@ public class Importer {
         final int offset = 3;
         final LineData data = createLineData(reader, offset);
         final RelType relType = new RelType();
+        flushIndexes();
         report.reset();
 
         while (data.processLine(null)) {
@@ -122,6 +123,12 @@ public class Importer {
             report.dots();
         }
         report.finishImport("Relationships");
+    }
+
+    private void flushIndexes() {
+        for (BatchInserterIndex index : indexes.values()) {
+            index.flush();
+        }
     }
 
     private LineData createLineData(Reader reader, int offset) {
