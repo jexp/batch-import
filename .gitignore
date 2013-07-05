@@ -1,3 +1,5 @@
+*.tsv
+test
 neo4j
 *.log
 .project
