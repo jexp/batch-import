@@ -221,7 +221,7 @@ neostore.propertystore.db.index.mapped_memory=5M
 ````
 batch_import.node_index.users=exact
 batch_import.node_index.articles=fulltext
-batch_import.rels_index.friends=exact
+batch_import.relationship_index.friends=exact
 ````
 
 #### CSV (experimental)
