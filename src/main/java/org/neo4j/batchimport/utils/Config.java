@@ -6,21 +6,13 @@ import org.neo4j.helpers.collection.MapUtil;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
+
+import static org.neo4j.batchimport.utils.Properties.*;
 
 public class Config {
-    public static final String BATCH_IMPORT_RELS_FILES = "batch_import.rels_files";
-    public static final String BATCH_IMPORT_GRAPH_DB = "batch_import.graph_db";
-    public static final String BATCH_IMPORT_KEEP_DB = "batch_import.keep_db";
     public static final String CONFIG_FILE_NAME = "batch.properties";
-    public static final String BATCH_IMPORT_NODES_FILES = "batch_import.nodes_files";
-    public static final String BATCH_IMPORT_MAPDB_CACHE_DISABLE = "batch_import.mapdb_cache.disable";
-    public static final String BATCH_IMPORT_CSV_QUOTES = "batch_import.csv.quotes";
-    public static final String BATCH_IMPORT_CSV_DELIM = "batch_import.csv.delim";
+
     private final Map<String, String> configData;
 
     public Config(Map<String, String> configData) {
@@ -60,13 +52,13 @@ public class Config {
 
     // todo more checks ?
     private static void validateConfig(Map<String, String> config) {
-        if (!config.containsKey(BATCH_IMPORT_GRAPH_DB)) throw new IllegalArgumentException("Missing parameter for graphdb directory");
+        if (!config.containsKey(BATCH_IMPORT_GRAPH_DB.key())) throw new IllegalArgumentException("Missing parameter for graphdb directory");
     }
 
     private static Collection<IndexInfo> convertParamsToConfig(Stack<String> args, Map<String, String> config) {
-        addConfigParamIfArgument(args, config, BATCH_IMPORT_GRAPH_DB);
-        addConfigParamIfArgument(args, config, BATCH_IMPORT_NODES_FILES);
-        addConfigParamIfArgument(args, config, BATCH_IMPORT_RELS_FILES);
+        addConfigParamIfArgument(args, config, BATCH_IMPORT_GRAPH_DB.key());
+        addConfigParamIfArgument(args, config, BATCH_IMPORT_NODES_FILES.key());
+        addConfigParamIfArgument(args, config, BATCH_IMPORT_RELS_FILES.key());
         Collection<IndexInfo> indexes = createIndexInfos(args);
         for (IndexInfo index : indexes) {
             index.addToConfig(config);
@@ -151,7 +143,7 @@ public class Config {
     }
 
     public boolean isCachedIndexDisabled() {
-        return configOptionEnabled(this, BATCH_IMPORT_MAPDB_CACHE_DISABLE);
+        return configOptionEnabled(this, BATCH_IMPORT_MAPDB_CACHE_DISABLE.key());
     }
 
     public Collection<IndexInfo> getIndexInfos() {
@@ -159,25 +151,25 @@ public class Config {
     }
 
     public Collection<File> getRelsFiles() {
-        return toFiles(get(BATCH_IMPORT_RELS_FILES));
+        return toFiles(get(BATCH_IMPORT_RELS_FILES.key()));
     }
 
     public Collection<File> getNodesFiles() {
-        return toFiles(get(BATCH_IMPORT_NODES_FILES));
+        return toFiles(get(BATCH_IMPORT_NODES_FILES.key()));
     }
 
     public char getDelimChar(Importer importer) {
-        final String delim = get(BATCH_IMPORT_CSV_DELIM);
+        final String delim = get(BATCH_IMPORT_CSV_DELIM.key());
         if (delim==null || delim.isEmpty()) return '\t';
         return delim.trim().charAt(0);
     }
 
     public boolean quotesEnabled() {
-        return configOptionEnabled(this, BATCH_IMPORT_CSV_QUOTES);
+        return configOptionEnabled(this, BATCH_IMPORT_CSV_QUOTES.key());
     }
 
     public String getGraphDbDirectory() {
-        return get(BATCH_IMPORT_GRAPH_DB);
+        return get(BATCH_IMPORT_GRAPH_DB.key());
     }
 
     String get(String option) {
@@ -185,7 +177,7 @@ public class Config {
     }
 
     public boolean keepDatabase() {
-        return configOptionEnabled(this, BATCH_IMPORT_KEEP_DB);
+        return configOptionEnabled(this, BATCH_IMPORT_KEEP_DB.key());
     }
 
     public Map<String, String> getConfigData() {

@@ -40,7 +40,7 @@ public class ConfigTest {
     @Test
     public void testExtractDatabaseDir() throws Exception {
         assertCommandLine("data/dir",
-                          "data/dir", Config.BATCH_IMPORT_GRAPH_DB);
+                          "data/dir", Properties.BATCH_IMPORT_GRAPH_DB.key());
     }
 
     @Test
@@ -54,13 +54,13 @@ public class ConfigTest {
     @Test
     public void testExtractNodesFiles() throws Exception {
         assertCommandLine("data/dir "+nodesFile.getAbsolutePath(),
-                          nodesFile.getAbsolutePath(), Config.BATCH_IMPORT_NODES_FILES);
+                          nodesFile.getAbsolutePath(), Properties.BATCH_IMPORT_NODES_FILES.key());
     }
 
     @Test
     public void testExtractRelsFiles() throws Exception {
         assertCommandLine("data/dir "+nodesFile.getAbsolutePath()+" "+relsFile.getAbsolutePath(),
-                          relsFile.getAbsolutePath(), Config.BATCH_IMPORT_RELS_FILES);
+                          relsFile.getAbsolutePath(), Properties.BATCH_IMPORT_RELS_FILES.key());
     }
 
     @Test
