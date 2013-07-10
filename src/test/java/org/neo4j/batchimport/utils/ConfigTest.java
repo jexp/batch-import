@@ -7,6 +7,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.Assert.assertEquals;
 
 public class ConfigTest {
@@ -45,7 +46,7 @@ public class ConfigTest {
 
     @Test
     public void testToFiles() throws Exception {
-        final Collection<File> files = Config.toFiles("null,,foo," + nodesFile.getAbsolutePath());
+        final Collection<File> files = Config.toFiles("null,,foo," + nodesFile.getAbsolutePath(), null);
         assertEquals(1,files.size());
         assertEquals(nodesFile.getAbsolutePath(),files.iterator().next().getAbsolutePath());
 
@@ -99,6 +100,21 @@ public class ConfigTest {
     @Test(expected = IllegalArgumentException.class)
     public void testFailsOnNoArguments() throws Exception {
         assertCommandLine("",null,null);
+    }
+
+    @Test
+    public void should_return_empty_string_for_null_path_prefix() {
+        assertThat(Config.normalize(null)).isEqualTo("");
+    }
+
+    @Test
+    public void should_return_string_as_is_if_ending_slash_is_present() {
+        assertThat(Config.normalize("test/")).isEqualTo("test" + File.separatorChar);
+    }
+
+    @Test
+    public void should_return_string_appended_with_slash_as_is_if_no_ending_slash_is_present() {
+        assertThat(Config.normalize("foo")).isEqualTo("foo" + File.separatorChar);
     }
 
     private void assertCommandLine(String arguments, String expected, String optionName) {

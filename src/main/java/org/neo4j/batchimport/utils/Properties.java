@@ -5,7 +5,7 @@ package org.neo4j.batchimport.utils;
  * @author Florent Biville (@fbiville)
  */
 public enum Properties {
-
+    BATCH_IMPORT_PATH_PREFIX("batch_import.file_path"),
     BATCH_IMPORT_RELS_FILES("batch_import.rels_files"),
     BATCH_IMPORT_GRAPH_DB("batch_import.graph_db"),
     BATCH_IMPORT_KEEP_DB("batch_import.keep_db"),

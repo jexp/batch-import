@@ -10,6 +10,10 @@ import java.util.*;
 
 import static org.neo4j.batchimport.utils.Properties.*;
 
+/**
+ * @author mh
+ * @author Florent Biville (@fbiville)
+ */
 public class Config {
     public static final String CONFIG_FILE_NAME = "batch.properties";
 
@@ -125,10 +129,12 @@ public class Config {
         return "true".equalsIgnoreCase(config.get(option));
     }
 
-    public static Collection<File> toFiles(String commaSeparatedFileList) {
+    public static Collection<File> toFiles(String commaSeparatedFileList,
+                                           String pathPrefix) {
+        String prefix = normalize(pathPrefix);
         Collection<File> files=new ArrayList<File>();
         for (String part : commaSeparatedFileList.split(",")) {
-            final File file = new File(part);
+            final File file = new File(prefix + part);
             if (file.exists() && file.canRead() && file.isFile()) files.add(file);
             else System.err.println("File "+file+" does not exist, can not be read or is not a file.");
         }
@@ -138,10 +144,10 @@ public class Config {
     public static String NODE_INDEX(String indexName) {
         return "batch_import.node_index." + indexName;
     }
+
     public static String RELATIONSHIP_INDEX(String indexName) {
         return "batch_import.relationship_index." + indexName;
     }
-
     public boolean isCachedIndexDisabled() {
         return configOptionEnabled(this, BATCH_IMPORT_MAPDB_CACHE_DISABLE.key());
     }
@@ -151,11 +157,17 @@ public class Config {
     }
 
     public Collection<File> getRelsFiles() {
-        return toFiles(get(BATCH_IMPORT_RELS_FILES.key()));
+        return toFiles(
+            get(BATCH_IMPORT_RELS_FILES.key()),
+            get(BATCH_IMPORT_PATH_PREFIX.key())
+        );
     }
 
     public Collection<File> getNodesFiles() {
-        return toFiles(get(BATCH_IMPORT_NODES_FILES.key()));
+        return toFiles(
+            get(BATCH_IMPORT_NODES_FILES.key()),
+            get(BATCH_IMPORT_PATH_PREFIX.key())
+        );
     }
 
     public char getDelimChar(Importer importer) {
@@ -172,15 +184,27 @@ public class Config {
         return get(BATCH_IMPORT_GRAPH_DB.key());
     }
 
-    String get(String option) {
-        return configData.get(option);
-    }
-
     public boolean keepDatabase() {
         return configOptionEnabled(this, BATCH_IMPORT_KEEP_DB.key());
     }
 
     public Map<String, String> getConfigData() {
         return configData;
+    }
+
+    /*testing*/String get(String option) {
+        return configData.get(option);
+    }
+
+    /*testing*/static String normalize(String pathPrefix) {
+        if (pathPrefix == null) {
+            return "";
+        }
+
+        if (pathPrefix.charAt(pathPrefix.length() - 1) == File.separatorChar) {
+            return pathPrefix;
+        }
+
+        return pathPrefix + File.separatorChar;
     }
 }
