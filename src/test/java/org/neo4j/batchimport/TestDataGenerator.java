@@ -33,7 +33,7 @@ public class TestDataGenerator {
         }
         nodeFile.close();
         relFile.close();
-        System.out.println("Creating " + NODES + " and " + relCount + (sorted? " sorted " : "") + " Relationships took " + ((System.currentTimeMillis() - time) / 1000) + " seconds.");
+        System.out.println("Creating " + NODES + " Nodes and " + relCount + (sorted? " sorted " : "") + " Relationships took " + ((System.currentTimeMillis() - time) / 1000) + " seconds.");
     }
 
     private static long generateRandomRels(long relCount, BufferedWriter nodeFile, BufferedWriter relFile) throws IOException {
