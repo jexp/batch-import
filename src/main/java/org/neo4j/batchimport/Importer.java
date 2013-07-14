@@ -80,17 +80,23 @@ public class Importer {
         report.finish();
     }
 
+    void insertIndexes(long id, LineData data) {
+        for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+            if (entry.getValue() != null) {
+                final BatchInserterIndex index = indexFor(entry.getKey());
+                if (index == null)
+                    throw new IllegalStateException("Index " + entry.getKey() + " not configured.");
+                index.add(id, entry.getValue());
+            }
+        }
+    }
+
     void importNodes(Reader reader) throws IOException {
         final LineData data = createLineData(reader, 0);
         report.reset();
         while (data.processLine(null)) {
             final long id = db.createNode(data.getProperties());
-            for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
-                final BatchInserterIndex index = indexFor(entry.getKey());
-                if (index==null)
-                    throw new IllegalStateException("Index "+entry.getKey()+" not configured.");
-                index.add(id, entry.getValue());
-            }
+            insertIndexes(id, data);
             report.dots();
         }
         report.finishImport("Nodes");
@@ -117,9 +123,7 @@ public class Importer {
             final long end = id(data, 1);
             final RelType type = relType.update(data.getTypeLabels()[0]);
             final long id = db.createRelationship(start, end, type, properties);
-            for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
-                indexFor(entry.getKey()).add(id, entry.getValue());
-            }
+            insertIndexes(id, data);
             report.dots();
         }
         report.finishImport("Relationships");
@@ -154,7 +158,7 @@ public class Importer {
             index.add(id(data.getValue(0)), properties);
             report.dots();
         }
-                
+
         report.finishImport("Done inserting into " + indexName + " Index");
     }
 

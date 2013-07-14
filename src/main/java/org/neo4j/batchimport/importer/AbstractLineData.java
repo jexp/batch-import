@@ -89,11 +89,13 @@ public abstract class AbstractLineData implements LineData {
         for (int column = offset; column < headers.length; column++) {
             Header header = headers[column];
             if (header.indexName == null) continue;
+            Object val = getValue(column);
+            if (val == null) continue;
 
             if (!indexData.containsKey(header.indexName)) {
                 indexData.put(header.indexName, new HashMap<String, Object>());
             }
-            indexData.get(header.indexName).put(header.name,getValue(column));
+            indexData.get(header.indexName).put(header.name,val);
         }
         return indexData;
     }
