@@ -132,6 +132,9 @@ public class Config {
     public static boolean configOptionEnabled(Config config, String option) {
         return "true".equalsIgnoreCase(config.get(option));
     }
+    public static boolean configOptionDisabled(Config config, String option) {
+        return "false".equalsIgnoreCase(config.get(option));
+    }
 
     public static Collection<File> toFiles(String commaSeparatedFileList) {
         Collection<File> files=new ArrayList<File>();
@@ -173,7 +176,7 @@ public class Config {
     }
 
     public boolean quotesEnabled() {
-        return configOptionEnabled(this, BATCH_IMPORT_CSV_QUOTES);
+        return !configOptionDisabled(this, BATCH_IMPORT_CSV_QUOTES);
     }
 
     public String getGraphDbDirectory() {

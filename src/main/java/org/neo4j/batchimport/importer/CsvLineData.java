@@ -28,7 +28,7 @@ public class CsvLineData extends AbstractLineData {
 
     protected boolean readLine() {
         final String[] row = readRawRow();
-        if (row==null) return false;
+        if (row==null || row.length==0) return false;
         for (int i = 0; i < row.length && i < lineSize; i++) {
             String value = row[i];
             if (value != null && !value.isEmpty()) {

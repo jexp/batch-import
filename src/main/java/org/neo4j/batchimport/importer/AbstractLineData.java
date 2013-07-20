@@ -2,6 +2,7 @@ package org.neo4j.batchimport.importer;
 
 import org.neo4j.batchimport.LineData;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -117,6 +118,7 @@ public abstract class AbstractLineData implements LineData {
 
     private int parse() {
         rows++;
+        Arrays.fill(lineData,null);
         done = !readLine();
         return collectNonNullInData();
     }

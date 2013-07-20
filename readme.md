@@ -227,7 +227,7 @@ batch_import.relationship_index.friends=exact
 #### CSV (experimental)
 
 ````
-batch_import.csv.quotes=true
+batch_import.csv.quotes=true // default, set to false for faster, experimental csv-reader
 batch_import.csv.delim=,
 ````
 
