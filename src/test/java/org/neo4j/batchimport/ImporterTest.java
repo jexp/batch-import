@@ -13,6 +13,7 @@ import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
 
 import java.io.File;
 import java.io.StringReader;
+import java.util.Arrays;
 import java.util.Map;
 
 import static java.util.Arrays.*;
@@ -92,6 +93,17 @@ public class ImporterTest {
     }
 
     @Test
+    public void testImportRelationshipsWithNonIndexedNodes() throws Exception {
+        when(index.get("node","a")).thenReturn(new LongIterableIndexHits(asList(1L)));
+        when(index.get("node","b")).thenReturn(new LongIterableIndexHits(Arrays.<Long>asList()));
+        importer.importRelationships(new StringReader("node:string:index-a\tnode:string:index-a\ttype\na\ta\tTYPE\na\tb\tTYPE\nb\ta\tTYPE"));
+        importer.finish();
+        verify(inserter, times(1)).createRelationship(eq(1L), eq(1L), argThat(new RelationshipMatcher("TYPE")),eq(map()));
+        verify(inserter, never()).createRelationship(eq(1L), eq(-1L), argThat(new RelationshipMatcher("TYPE")),eq(map()));
+        verify(inserter, never()).createRelationship(eq(-1L), eq(1L), argThat(new RelationshipMatcher("TYPE")),eq(map()));
+    }
+
+    @Test
     public void testImportNodeWithIndividualTypes() throws Exception {
         importer.importNodes(new StringReader("a:int\tb:float\tc:float\n10\t10.0\t1E+10"));
         importer.finish();
@@ -115,6 +127,6 @@ public class ImporterTest {
     public void testImportRelationshipWithIndividualTypes() throws Exception {
         importer.importRelationships(new StringReader("start\tend\ttype\ta:int\tb:float\tc:float\n1\t2\tTYPE\t10\t10.0\t1E+10"));
         importer.finish();
-        verify(inserter, times(1)).createRelationship(eq(1L), eq(2L), argThat(new RelationshipMatcher("TYPE")), eq(map("a", 10,"b",10.0F,"c",1E+10F)));
+        verify(inserter, times(1)).createRelationship(eq(1L), eq(2L), argThat(new RelationshipMatcher("TYPE")), eq(map("a", 10, "b", 10.0F, "c", 1E+10F)));
     }
 }

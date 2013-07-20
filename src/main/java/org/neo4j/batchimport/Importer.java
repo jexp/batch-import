@@ -80,30 +80,25 @@ public class Importer {
         report.finish();
     }
 
-    void insertIndexes(long id, LineData data) {
-        for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
-            if (entry.getValue() != null) {
-                final BatchInserterIndex index = indexFor(entry.getKey());
-                if (index == null)
-                    throw new IllegalStateException("Index " + entry.getKey() + " not configured.");
-                index.add(id, entry.getValue());
-            }
-        }
-    }
-
     void importNodes(Reader reader) throws IOException {
         final LineData data = createLineData(reader, 0);
         report.reset();
         while (data.processLine(null)) {
             final long id = db.createNode(data.getProperties());
-            insertIndexes(id, data);
+            for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+                final BatchInserterIndex index = indexFor(entry.getKey());
+                if (index==null)
+                    throw new IllegalStateException("Index "+entry.getKey()+" not configured.");
+                index.add(id, entry.getValue());
+            }
             report.dots();
         }
         report.finishImport("Nodes");
     }
 
     private long lookup(String index,String property,Object value) {
-        return indexFor(index).get(property, value).getSingle();
+        Long id = indexFor(index).get(property, value).getSingle();
+        return id==null ? -1 : id;
     }
 
     private BatchInserterIndex indexFor(String index) {
@@ -114,6 +109,7 @@ public class Importer {
         final int offset = 3;
         final LineData data = createLineData(reader, offset);
         final RelType relType = new RelType();
+        long skipped=0;
         flushIndexes();
         report.reset();
 
@@ -121,12 +117,20 @@ public class Importer {
             final Map<String, Object> properties = data.getProperties();
             final long start = id(data, 0);
             final long end = id(data, 1);
+            if (start==-1 || end==-1) {
+                skipped++;
+                continue;
+            }
             final RelType type = relType.update(data.getTypeLabels()[0]);
             final long id = db.createRelationship(start, end, type, properties);
-            insertIndexes(id, data);
+            for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+                indexFor(entry.getKey()).add(id, entry.getValue());
+            }
             report.dots();
         }
-        report.finishImport("Relationships");
+        String msg = "Relationships";
+        if (skipped > 0) msg += " skipped (" + skipped + ")";
+        report.finishImport(msg);
     }
 
     private void flushIndexes() {
@@ -158,7 +162,7 @@ public class Importer {
             index.add(id(data.getValue(0)), properties);
             report.dots();
         }
-
+                
         report.finishImport("Done inserting into " + indexName + " Index");
     }
 
