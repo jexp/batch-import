@@ -25,6 +25,7 @@ import java.util.concurrent.Executors;
 public class DisruptorBatchInserter {
 
     private final static Logger log = Logger.getLogger(DisruptorBatchInserter.class);
+    private static final int RELS_PER_BUFFER = 1 * 1024 * 1024;
 
     private volatile boolean stop;
 
@@ -54,7 +55,7 @@ public class DisruptorBatchInserter {
         this.storeDir = storeDir;
         final int minBufferBits = (int) (Math.log(nodesToCreate / 1000) / Math.log(2));
         this.ringSize = 1 << Math.min(minBufferBits,18);
-        log.info("Ring size " + ringSize);
+        log.info("Ring size " + ringSize+" processors "+Runtime.getRuntime().availableProcessors());
         this.config = config;
         this.nodesToCreate = nodesToCreate;
         this.nodeStructFactory = nodeStructFactory;
@@ -66,7 +67,7 @@ public class DisruptorBatchInserter {
         NeoStore neoStore = inserter.getNeoStore();
         neoStore.getNodeStore().setHighId(nodesToCreate + 1);
         final int processors = Runtime.getRuntime().availableProcessors();
-        executor = processors >=4 ? Executors.newFixedThreadPool(processors*2) : Executors.newCachedThreadPool();
+        executor = processors >=8 ? Executors.newFixedThreadPool(processors*2) : Executors.newCachedThreadPool();
 
         disruptor = new Disruptor<NodeStruct>(nodeStructFactory, executor, new SingleThreadedClaimStrategy(ringSize), new YieldingWaitStrategy());
         disruptor.handleExceptionsWith(new BatchInserterExceptionHandler());
@@ -91,7 +92,7 @@ public class DisruptorBatchInserter {
         propertyWriter = new PropertyWriteRecordHandler(neoStore.getPropertyStore());
         final RelationshipRecordWriter relationshipRecordWriter = new RelationshipRecordWriter(neoStore.getRelationshipStore());
         relationshipWriter = new RelationshipWriteHandler(relationshipRecordWriter, nodeStructFactory.getTotalNrOfRels());
-        forwardRelationshipUpdateHandler = new ForwardRelationshipUpdateHandler(relationshipRecordWriter, nodeStructFactory.getTotalNrOfRels());
+        forwardRelationshipUpdateHandler = new ForwardRelationshipUpdateHandler(relationshipRecordWriter, nodeStructFactory.getTotalNrOfRels(),RELS_PER_BUFFER);
         cleanupMemoryHandler = new CleanupMemoryHandler();
         //relationshipWriter = new RelationshipWriteHandler(new RelationshipFileWriter(new File(neoStore.getRelationshipStore().getStorageFileName())));
     }

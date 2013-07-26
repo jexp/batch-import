@@ -17,8 +17,8 @@ public class ForwardRelationshipUpdateHandler implements EventHandler<NodeStruct
     private final ForwardRelationshipUpdateManager futureNodeRelInfo;
     private final RelationshipUpdateCache cache;
 
-    public ForwardRelationshipUpdateHandler(RelationshipWriter relationshipWriter, final long totalNrOfRels) {
-        cache = new RelationshipUpdateCache(relationshipWriter, totalNrOfRels);
+    public ForwardRelationshipUpdateHandler(RelationshipWriter relationshipWriter, final long totalNrOfRels, final int relsPerBuffer) {
+        cache = new RelationshipUpdateCache(relationshipWriter, totalNrOfRels,RelationshipUpdateCache.BUCKETS,relsPerBuffer);
         futureNodeRelInfo = new ForwardRelationshipUpdateManager(cache);
     }
 
