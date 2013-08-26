@@ -116,6 +116,14 @@ public class ImporterTest {
         importer.finish();
         verify(inserter, times(1)).createRelationship(eq(1L), eq(2L), argThat(new RelationshipMatcher("TYPE")), eq(map("a", "foo")));
     }
+
+    @Test
+    public void testImportSimpleRelationshipWithTypeType() throws Exception {
+        importer.importRelationships(new StringReader("start\tend\t:label\ta\n1\t2\tTYPE\tfoo"));
+        importer.finish();
+        verify(inserter, times(1)).createRelationship(eq(1L), eq(2L), argThat(new RelationshipMatcher("TYPE")), eq(map("a", "foo")));
+    }
+
     @Test
     public void testImportSimpleRelationshipWithNewlineOnce() throws Exception {
         importer.importRelationships(new StringReader("start\tend\ttype\ta\n1\t2\tTYPE\tfoo\n"));

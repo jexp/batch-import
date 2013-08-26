@@ -42,7 +42,7 @@ public abstract class AbstractLineData implements LineData {
             final String name = parts[0];
             final String indexName = parts.length > 2 ? parts[2] : null;
             Type type = Type.fromString(parts.length > 1 ? parts[1] : null);
-            if (type==Type.LABEL || name.toLowerCase().matches("^(type|types|label|labels)$")) {
+            if (type==Type.LABEL) { //  || name.toLowerCase().matches("^(type|types|label|labels)$")) {
                 labelId=i;
                 type=Type.LABEL;
             }
