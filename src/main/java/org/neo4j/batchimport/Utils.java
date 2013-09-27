@@ -58,4 +58,11 @@ public class Utils {
         return String.format("Node[%d] -> %d, .%d", record.getId(), record.getNextRel(), record.getNextProp());
     }
 
+    static String join(String[] types, String delim) {
+        StringBuilder sb =new StringBuilder();
+        for (String type : types) {
+            sb.append(type).append(delim);
+        }
+        return sb.substring(0, sb.length() - delim.length());
+    }
 }

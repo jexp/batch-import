@@ -17,6 +17,7 @@ import java.io.*;
 import java.util.*;
 import java.util.zip.GZIPInputStream;
 
+import static org.neo4j.batchimport.Utils.join;
 import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.EXACT_CONFIG;
 import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.FULLTEXT_CONFIG;
 
@@ -61,7 +62,9 @@ public class Importer {
     // todo nodes and rels-files in config
     // todo graphdb in config
     public static void main(String[] args) throws IOException {
-        System.err.println("Usage java -jar batchimport.jar data/dir nodes.csv relationships.csv [node_index node-index-name fulltext|exact nodes_index.csv rel_index rel-index-name fulltext|exact rels_index.csv ....]");
+        System.err.println("Usage: Importer data/dir nodes.csv relationships.csv [node_index node-index-name fulltext|exact nodes_index.csv rel_index rel-index-name fulltext|exact rels_index.csv ....]");
+        System.err.println("Using: Importer "+join(args," "));
+        System.err.println();
 
         final Config config = Config.convertArgumentsToConfig(args);
 
