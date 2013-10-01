@@ -5,6 +5,8 @@ import org.neo4j.batchimport.importer.CsvLineData;
 import org.neo4j.batchimport.importer.RelType;
 import org.neo4j.batchimport.index.MapDbCachingIndexProvider;
 import org.neo4j.batchimport.utils.Config;
+import org.neo4j.graphdb.DynamicLabel;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.index.IndexManager;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.kernel.impl.util.FileUtils;
@@ -23,11 +25,13 @@ import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.FULLTEXT_CON
 
 public class Importer {
     private static final Map<String, String> SPATIAL_CONFIG = Collections.singletonMap(IndexManager.PROVIDER,"spatial");
+    private static final Label[] NO_LABELS = new Label[0];
     private static Report report;
     private final Config config;
     private BatchInserter db;
     private BatchInserterIndexProvider indexProvider;
     Map<String,BatchInserterIndex> indexes=new HashMap<String, BatchInserterIndex>();
+    private Label[] labelsArray = NO_LABELS;
 
     public Importer(File graphDb, final Config config) {
         this.config = config;
@@ -87,7 +91,8 @@ public class Importer {
         final LineData data = createLineData(reader, 0);
         report.reset();
         while (data.processLine(null)) {
-            final long id = db.createNode(data.getProperties());
+            String[] labels = data.getTypeLabels();
+            final long id = db.createNode(data.getProperties(),labelsFor(labels));
             for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
                 final BatchInserterIndex index = indexFor(entry.getKey());
                 if (index==null)
@@ -97,6 +102,16 @@ public class Importer {
             report.dots();
         }
         report.finishImport("Nodes");
+    }
+
+    private Label[] labelsFor(String[] labels) {
+        if (labels == null || labels.length == 0) return NO_LABELS;
+        if (labels.length != labelsArray.length) labelsArray = new Label[labels.length];
+        for (int i = labels.length - 1; i >= 0; i--) {
+            if (labelsArray[i] == null || !labelsArray[i].name().equals(labels[i]))
+                labelsArray[i] = DynamicLabel.label(labels[i]);
+        }
+        return labelsArray;
     }
 
     private long lookup(String index,String property,Object value) {
@@ -124,7 +139,7 @@ public class Importer {
                 skipped++;
                 continue;
             }
-            final RelType type = relType.update(data.getTypeLabels()[0]);
+            final RelType type = relType.update(data.getRelationshipTypeLabel());
             final long id = db.createRelationship(start, end, type, properties);
             for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
                 indexFor(entry.getKey()).add(id, entry.getValue());

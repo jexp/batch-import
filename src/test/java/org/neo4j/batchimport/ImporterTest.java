@@ -5,6 +5,8 @@ import org.junit.Test;
 import org.mockito.Matchers;
 import org.neo4j.batchimport.index.LongIterableIndexHits;
 import org.neo4j.batchimport.utils.Config;
+import org.neo4j.graphdb.DynamicLabel;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
@@ -55,6 +57,26 @@ public class ImporterTest {
         importer.importNodes(new StringReader("a\nfoo"));
         importer.finish();
         verify(inserter, times(1)).createNode(eq(map("a", "foo")));
+    }
+
+    @Test
+    public void testImportNodeWithNoLabel() throws Exception {
+        importer.importNodes(new StringReader("a\t:label\nfoo\t"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "foo")));
+    }
+    @Test
+    public void testImportNodeWithLabel() throws Exception {
+        importer.importNodes(new StringReader("a\t:label\nfoo\tbar"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "foo")),eq(DynamicLabel.label("bar")));
+    }
+
+    @Test
+    public void testImportNodeWithTwoLabels() throws Exception {
+        importer.importNodes(new StringReader("a\t:label\nfoo\tbar,bor"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "foo")),eq(DynamicLabel.label("bar")),eq(DynamicLabel.label("bor")));
     }
 
     @Test

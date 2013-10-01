@@ -24,5 +24,6 @@ public interface LineData {
     Map<String,Object> getProperties();
     Map<String,Map<String,Object>> getIndexData();
     String[] getTypeLabels();
+    String getRelationshipTypeLabel();
     Object getValue(int column);
 }

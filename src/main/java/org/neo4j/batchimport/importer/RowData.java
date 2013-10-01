@@ -17,6 +17,7 @@ public class RowData implements LineData {
     private final int lineSize;
     private int rows;
     int labelId = 2;
+    int explicitLabelId = 2;
     private LineData.Header[] headers;
     private int propertyCount;
     private boolean hasIndex=false;
@@ -41,6 +42,7 @@ public class RowData implements LineData {
             if (type==Type.LABEL || name.toLowerCase().matches("^(type|types|label|labels)$")) {
                 labelId=i;
                 type=Type.LABEL;
+                explicitLabelId=i;
             }
             headers[i]=new Header(i, name, type, indexName);
             hasIndex |= indexName != null;
@@ -96,7 +98,15 @@ public class RowData implements LineData {
 
     @Override
     public String[] getTypeLabels() {
-        return (String[])getValue(labelId);
+        if (explicitLabelId==-1) return null;
+        Object labels = getValue(explicitLabelId);
+        return labels instanceof String ? new String[]{ labels.toString() } : (String[]) labels;
+    }
+
+    @Override
+    public String getRelationshipTypeLabel() {
+        Object labels = getValue(labelId);
+        return labels instanceof String[] ? ((String[])labels)[0] : (String)labels;
     }
 
     @Override
