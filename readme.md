@@ -3,6 +3,8 @@
 This software is licensed under the [GPLv3](http://www.gnu.org/licenses/gpl-3.0.en.html) for now. 
 You can ask [Neo Technology](http://neotechnology.com) about a different licensing agreement.
 
+__Works with Neo4j 2.0.0-M05__
+
 You provide one **tab separated** csv file for nodes and one for relationships (optionally more for indexes)
 
 Example data for the files is a small family network
@@ -14,7 +16,7 @@ Example data for the files is a small family network
 * If only one file is initially imported, the row number corresponds to the node-id (node 0 is the reference node)
 * Property values not listed will not be set on the nodes or relationships.
 * Optionally property fields can have a type (defaults to String) indicated with name:type where type is one of (int, long, float, double, boolean, byte, short, char, string). The string value is then converted to that type. Conversion failure will result in abort of the import operation.
-* There is a separate "label" type, which should be used for relationship types and/or node labels (when we add 2.0 support)
+* There is a separate "label" type, which should be used for relationship types and/or node labels, (`labels:label`)
 * Property fields may also be arrays by adding "_array" to the types above and separating the data with commas.
 * for non-ascii characters make sure to add `-Dfile.encoding=UTF-8` to the commandline arguments
 * Optionally automatic indexing of properties can be configured with a header like `name:string:users` and a configured index in `batch.properties` like `batch_import.node_index=exact`
@@ -28,11 +30,11 @@ There is also a `sample` directory, please run from the main directory `sh sampl
 
 ### nodes.csv
 
-    name    age works_on
-    Michael 37  neo4j
-    Selina  14
-    Rana    6
-    Selma   4
+    name    l:label       age works_on
+    Michael Person,Father 37  neo4j
+    Selina  Person,Child  14
+    Rana    Person,Child  6
+    Selma   Person,Child  4
 
 ### rels.csv
 
