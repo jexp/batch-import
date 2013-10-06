@@ -3,6 +3,8 @@
 This software is licensed under the [GPLv3](http://www.gnu.org/licenses/gpl-3.0.en.html) for now. 
 You can ask [Neo Technology](http://neotechnology.com) about a different licensing agreement.
 
+__For support for Neo4j and Labels see [the 2.0 branch](https://github.com/jexp/batch-import/tree/20).__
+
 You provide one **tab separated** csv file for nodes and one for relationships (optionally more for indexes)
 
 Example data for the files is a small family network
