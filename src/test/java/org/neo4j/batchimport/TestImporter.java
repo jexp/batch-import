@@ -165,5 +165,10 @@ public class TestImporter {
         public void finishImport(String type) {
             System.out.println("\nImporting " + count + " " + type + " took " + (System.currentTimeMillis() - time) / 1000 + " seconds ");
         }
+
+        @Override
+        public long getCount() {
+            return count;
+        }
     }
 }

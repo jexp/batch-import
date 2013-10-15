@@ -26,6 +26,7 @@ import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.FULLTEXT_CON
 public class Importer {
     private static final Map<String, String> SPATIAL_CONFIG = Collections.singletonMap(IndexManager.PROVIDER,"spatial");
     private static final Label[] NO_LABELS = new Label[0];
+    public static final int BATCH = 10 * 1000 * 1000;
     private static Report report;
     private final Config config;
     private BatchInserter db;
@@ -51,7 +52,7 @@ public class Importer {
     }
 
     protected StdOutReport createReport() {
-        return new StdOutReport(10 * 1000 * 1000, 100);
+        return new StdOutReport(BATCH, 100);
     }
 
     protected BatchInserterIndexProvider createIndexProvider(boolean luceneOnlyIndex) {
@@ -100,7 +101,10 @@ public class Importer {
                 index.add(id, entry.getValue());
             }
             report.dots();
+
+            if (report.getCount() % BATCH == 0) flushIndexes();
         }
+        flushIndexes();
         report.finishImport("Nodes");
     }
 
@@ -128,7 +132,6 @@ public class Importer {
         final LineData data = createLineData(reader, offset);
         final RelType relType = new RelType();
         long skipped=0;
-        flushIndexes();
         report.reset();
 
         while (data.processLine(null)) {
