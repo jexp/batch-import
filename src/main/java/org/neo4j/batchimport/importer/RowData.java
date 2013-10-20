@@ -20,6 +20,7 @@ public class RowData implements LineData {
     private LineData.Header[] headers;
     private int propertyCount;
     private boolean hasIndex=false;
+    private boolean hasId;
 
     public RowData(String header, String delim, int offset) {
         this.offset = offset;
@@ -45,6 +46,7 @@ public class RowData implements LineData {
             headers[i]=new Header(i, name, type, indexName);
             hasIndex |= indexName != null;
         }
+        hasId = headers[0].type == Type.ID;
         return headers;
     }
 
@@ -70,7 +72,13 @@ public class RowData implements LineData {
 
     @Override
     public long getId() {
+        if (hasId) return (Long)getValue(0);
         return rows;
+    }
+
+    @Override
+    public boolean hasId() {
+        return hasId;
     }
 
     @Override

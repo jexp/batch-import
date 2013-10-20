@@ -58,6 +58,13 @@ public class ImporterTest {
     }
 
     @Test
+    public void testImportSimpleNodeWithId() throws Exception {
+        importer.importNodes(new StringReader("i:id\ta\n123\tfoo"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(123L),eq(map("a", "foo")));
+    }
+
+    @Test
     public void testImportSimpleNodeWithNewlineAtEnd() throws Exception {
         importer.importNodes(new StringReader("a\nfoo\n"));
         importer.finish();
