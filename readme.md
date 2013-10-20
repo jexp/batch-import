@@ -22,6 +22,7 @@ Example data for the files is a small family network
 * Optionally automatic indexing of properties can be configured with a header like `name:string:users` and a configured index in `batch.properties` like `batch_import.node_index=exact`
   then the property `name` will be indexed in the `users` index for each row with a value there
 * multiple files for nodes and rels, comma separated, without spaces like "node1.csv,node2.csv"
+* you can specify concrete node-id's with: `i:id`
 * csv files can be zipped individually as *.gz or *.zip
 
 ## Examples

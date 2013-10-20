@@ -1,11 +1,19 @@
 package org.neo4j.batchimport.importer;
 
 public enum Type {
+    ID {
+        @Override
+        public Object convert(String value) {
+            return Long.parseLong(value);
+        }
+        public boolean isProperty() { return false; }
+    },
     LABEL {
         @Override
         public Object convert(String value) {
             return value.trim().split("\\s*,\\s*");
         }
+        public boolean isProperty() { return false; }
     },
     BOOLEAN {
         @Override
@@ -166,4 +174,6 @@ public enum Type {
     }
 
     public abstract Object convert(String value);
+
+    public boolean isProperty() { return true; }
 }

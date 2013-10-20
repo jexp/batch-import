@@ -21,6 +21,7 @@ public abstract class AbstractLineData implements LineData {
     private int propertyCount;
     private boolean hasIndex=false;
     private boolean done;
+    private boolean hasId;
 
     public AbstractLineData(int offset) {
         this.offset = offset;
@@ -52,6 +53,7 @@ public abstract class AbstractLineData implements LineData {
             i++;
             hasIndex |= indexName != null;
         }
+        hasId = headers[0].type == Type.ID;
         return headers;
     }
 
@@ -77,6 +79,7 @@ public abstract class AbstractLineData implements LineData {
 
     @Override
     public long getId() {
+        if (hasId) return (Long)getValue(0);
         return rows;
     }
 
@@ -121,6 +124,11 @@ public abstract class AbstractLineData implements LineData {
         return lineData[column];
     }
 
+    @Override
+    public boolean hasId() {
+        return hasId;
+    }
+
     private Header getHeader(int column) {
         return headers[column];
     }
@@ -140,6 +148,7 @@ public abstract class AbstractLineData implements LineData {
             notnull++;
             if (i<offset || i == explicitLabelId) continue;
             final Header header = getHeader(i);
+            if (!header.type.isProperty()) continue;
             properties[propertyCount++]= header.name;
             properties[propertyCount++]= getValue(i);
         }

@@ -5,6 +5,7 @@ import org.neo4j.batchimport.importer.Type;
 import java.util.Map;
 
 public interface LineData {
+
     class Header {
         public Header(int column, String name, Type type, String indexName) {
             this.column = column;
@@ -26,4 +27,5 @@ public interface LineData {
     String[] getTypeLabels();
     String getRelationshipTypeLabel();
     Object getValue(int column);
+    boolean hasId();
 }
