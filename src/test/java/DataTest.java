@@ -70,6 +70,7 @@ public class DataTest {
         assertEquals(true,row.get("c") instanceof String[]);
         assertArrayEquals(new String[]{"bagels", "coffee", "tea"}, (String[]) row.get("c"));
     }
+
     @Test
     public void testBooleanArrayType() throws Exception {
         RowData data = new RowData("a:int\tb:float\tc:boolean_array", "\t", 0);

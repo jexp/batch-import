@@ -3,6 +3,7 @@ package org.neo4j.batchimport;
 import org.neo4j.batchimport.importer.ChunkerLineData;
 import org.neo4j.batchimport.importer.CsvLineData;
 import org.neo4j.batchimport.importer.RelType;
+import org.neo4j.batchimport.importer.Type;
 import org.neo4j.batchimport.index.MapDbCachingIndexProvider;
 import org.neo4j.batchimport.utils.Config;
 import org.neo4j.graphdb.index.IndexManager;
@@ -86,8 +87,15 @@ public class Importer {
     void importNodes(Reader reader) throws IOException {
         final LineData data = createLineData(reader, 0);
         report.reset();
+        boolean hasId = data.hasId();
         while (data.processLine(null)) {
-            final long id = db.createNode(data.getProperties());
+            long id;
+            if (hasId) {
+                id = data.getId();
+                db.createNode(id, data.getProperties());
+            } else {
+                id = db.createNode(data.getProperties());
+            }
             for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
                 final BatchInserterIndex index = indexFor(entry.getKey());
                 if (index==null)
@@ -151,7 +159,7 @@ public class Importer {
     private long id(LineData data, int column) {
         final LineData.Header header = data.getHeader()[column];
         final Object value = data.getValue(column);
-        if (header.indexName == null) {
+        if (header.indexName == null || header.type == Type.ID) {
             return id(value);
         }
         return lookup(header.indexName, header.name, value);
