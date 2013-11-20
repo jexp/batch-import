@@ -21,10 +21,16 @@ public class Config {
     public static final String BATCH_IMPORT_MAPDB_CACHE_DISABLE = "batch_import.mapdb_cache.disable";
     public static final String BATCH_IMPORT_CSV_QUOTES = "batch_import.csv.quotes";
     public static final String BATCH_IMPORT_CSV_DELIM = "batch_import.csv.delim";
+    public static final String ARRAY_SEPARATOR_CONFIG = "batch_array_separator";
+    public static String ARRAYS_SEPARATOR = ",";
+
     private final Map<String, String> configData;
 
     public Config(Map<String, String> configData) {
         this.configData = configData;
+        if (this.configData.containsKey(ARRAY_SEPARATOR_CONFIG)){
+            Config.ARRAYS_SEPARATOR = configData.get(ARRAY_SEPARATOR_CONFIG);
+         }
     }
 
     public static Config convertArgumentsToConfig(String[] args) {
