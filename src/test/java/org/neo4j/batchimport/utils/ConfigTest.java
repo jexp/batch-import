@@ -4,7 +4,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.StringWriter;
 import java.util.Collection;
 
 import static org.junit.Assert.assertEquals;
@@ -19,7 +21,7 @@ public class ConfigTest {
         final File tempFile;
         try {
             tempFile = File.createTempFile(prefix, "." + suffix, new File("target"));
-            tempFile.deleteOnExit();
+           tempFile.deleteOnExit();
             return tempFile;
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -28,6 +30,9 @@ public class ConfigTest {
 
     public ConfigTest() throws IOException {
         testConfigFile = createTempFile("test", "properties");
+        FileWriter fileWriter = new FileWriter(testConfigFile);
+        fileWriter.write(Config.ARRAY_SEPARATOR_CONFIG+"=|");
+        fileWriter.close();
     }
 
     @Before
@@ -36,7 +41,9 @@ public class ConfigTest {
     }
 
 //        final String[] args = "data/dir nodes.csv relationships.csv [node_index node-index-name fulltext|exact nodes_index.csv rel_index rel-index-name fulltext|exact rels_index.csv ....]".split(" ");
+    
 
+    
     @Test
     public void testExtractDatabaseDir() throws Exception {
         assertCommandLine("data/dir",
@@ -82,6 +89,13 @@ public class ConfigTest {
     public void testExtractFulltextNodeIndex() throws Exception {
         assertCommandLine("data/dir nodes.csv rels.csv node_index index-name fulltext",
                           "fulltext", Config.NODE_INDEX("index-name"));
+    }
+    
+    @Test
+    public void testCustomArraySeparator() throws Exception {
+            assertCommandLine("data/dir nodes.csv rels.csv node_index index-name fulltext",
+                          "|", Config.ARRAY_SEPARATOR_CONFIG);
+            Config.ARRAYS_SEPARATOR =",";
     }
 
     @Test

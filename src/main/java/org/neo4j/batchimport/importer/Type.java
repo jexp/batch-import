@@ -1,5 +1,7 @@
 package org.neo4j.batchimport.importer;
 
+import org.neo4j.batchimport.utils.Config;
+
 public enum Type {
     ID {
         @Override
@@ -72,7 +74,7 @@ public enum Type {
     BOOLEAN_ARRAY {
         @Override
         public Object convert(String value) {
-            String[] strArray = value.split(",");
+            String[] strArray = value.split(Config.ARRAYS_SEPARATOR);
             boolean[] booleanArray = new boolean[strArray.length];
             for(int i = 0; i < strArray.length; i++) {
                 booleanArray[i] = Boolean.valueOf(strArray[i]);
@@ -83,7 +85,7 @@ public enum Type {
     INT_ARRAY {
         @Override
         public Object convert(String value) {
-            String[] strArray = value.split(",");
+            String[] strArray = value.split(Config.ARRAYS_SEPARATOR);
             int[] intArray = new int[strArray.length];
             for(int i = 0; i < strArray.length; i++) {
                 intArray[i] = Integer.parseInt(strArray[i]);
@@ -94,7 +96,7 @@ public enum Type {
     LONG_ARRAY {
         @Override
         public Object convert(String value) {
-            String[] strArray = value.split(",");
+            String[] strArray = value.split(Config.ARRAYS_SEPARATOR);
             long[] longArray = new long[strArray.length];
             for(int i = 0; i < strArray.length; i++) {
                 longArray[i] = Long.parseLong(strArray[i]);
@@ -105,7 +107,7 @@ public enum Type {
     DOUBLE_ARRAY {
         @Override
         public Object convert(String value) {
-            String[] strArray = value.split(",");
+            String[] strArray = value.split(Config.ARRAYS_SEPARATOR);
             double[] doubleArray = new double[strArray.length];
             for(int i = 0; i < strArray.length; i++) {
                 doubleArray[i] = Double.parseDouble(strArray[i]);
@@ -116,7 +118,7 @@ public enum Type {
     FLOAT_ARRAY {
         @Override
         public Object convert(String value) {
-            String[] strArray = value.split(",");
+            String[] strArray = value.split(Config.ARRAYS_SEPARATOR);
             float[] floatArray = new float[strArray.length];
             for(int i = 0; i < strArray.length; i++) {
                 floatArray[i] = Float.parseFloat(strArray[i]);
@@ -127,7 +129,7 @@ public enum Type {
     BYTE_ARRAY {
         @Override
         public Object convert(String value) {
-            String[] strArray = value.split(",");
+            String[] strArray = value.split(Config.ARRAYS_SEPARATOR);
             byte[] byteArray = new byte[strArray.length];
             for(int i = 0; i < strArray.length; i++) {
                 byteArray[i] = Byte.parseByte(strArray[i]);
@@ -138,7 +140,7 @@ public enum Type {
     SHORT_ARRAY {
         @Override
         public Object convert(String value) {
-            String[] strArray = value.split(",");
+            String[] strArray = value.split(Config.ARRAYS_SEPARATOR);
             short[] shortArray = new short[strArray.length];
             for(int i = 0; i < strArray.length; i++) {
                 shortArray[i] = Short.parseShort(strArray[i]);
@@ -149,7 +151,7 @@ public enum Type {
     CHAR_ARRAY {
         @Override
         public Object convert(String value) {
-            String[] strArray = value.split(",");
+            String[] strArray = value.split(Config.ARRAYS_SEPARATOR);
             char[] charArray = new char[strArray.length];
             for(int i = 0; i < strArray.length; i++) {
                 charArray[i] = strArray[i].charAt(0);
@@ -160,7 +162,8 @@ public enum Type {
     STRING_ARRAY {
         @Override
         public Object convert(String value) {
-            return value.split(",");
+            String separator = Config.ARRAYS_SEPARATOR;
+            return value.split(Config.ARRAYS_SEPARATOR);
         }
     };
 

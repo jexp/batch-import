@@ -19,6 +19,8 @@ import java.util.Arrays;
 import java.util.Map;
 
 import static java.util.Arrays.*;
+import org.junit.Assert;
+import org.mockito.ArgumentCaptor;
 import static org.mockito.Matchers.*;
 import static org.mockito.Mockito.*;
 import static org.neo4j.helpers.collection.MapUtil.map;
@@ -137,6 +139,29 @@ public class ImporterTest {
         importer.importNodes(new StringReader("a:int\tb:float\tc:float\n10\t10.0\t1E+10"));
         importer.finish();
         verify(inserter, times(1)).createNode(eq(map("a", 10,"b",10.0F,"c",1E+10F)));
+    }
+    
+    @Test
+    public void testImportNodeWithArrayTypes() throws Exception {
+        importer.importNodes(new StringReader("a:STRING_ARRAY\tb:float\tc:float\n10,11,12\t10.0\t1E+10"));
+        importer.finish();
+        String[] expectedArray = {"10","11","12"};
+        ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
+        verify(inserter, times(1)).createNode(argument.capture());
+        Map<String, Object> inputMap = argument.getValue();
+        Assert.assertArrayEquals((String[])inputMap.get("a"),expectedArray);   
+    }
+    
+    @Test
+    public void testImportNodeWithArrayTypesCustomSeparator() throws Exception {
+        Config.ARRAYS_SEPARATOR = "%";
+        importer.importNodes(new StringReader("a:STRING_ARRAY\tb:float\tc:float\n10%11%12\t10.0\t1E+10"));
+        importer.finish();
+        String[] expectedArray = {"10","11","12"};
+        ArgumentCaptor<Map> argument = ArgumentCaptor.forClass(Map.class);
+        verify(inserter, times(1)).createNode(argument.capture());
+        Map<String, Object> inputMap = argument.getValue();
+        Assert.assertArrayEquals((String[])inputMap.get("a"),expectedArray);   
     }
 
     @Test
