@@ -1,3 +1,5 @@
-name:string:users	age	works_on
-Michael	37	neo4j
-Selina	14
+name  age works_on
+Michael 37  neo4j
+Selina  14  test2
+Rana  6 test2
+Selma 4 test1
