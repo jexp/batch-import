@@ -1,6 +1,1 @@
-name	name	type	since	counter:int
-Michael	Selina	FATHER_OF 1998-07-10	1
-Michael	Rana	FATHER_OF 2007-09-15	2
-Michael	Selma	FATHER_OF 2008-05-03	3
-Rana	Selma	SISTER_OF 2008-05-03	5
-Selina	Rana	SISTER_OF 2007-09-15	7
+start,end,type,since,counter:int1,2,FATHER_OF,7/10/98,11,3,FATHER_OF,9/15/07,21,4,FATHER_OF,5/3/08,33,4,SISTER_OF,5/3/08,52,3,SISTER_OF,9/15/07,7

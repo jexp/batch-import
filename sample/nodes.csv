@@ -1,5 +1,1 @@
-name  age works_on
-Michael 37  neo4j
-Selina  14  test2
-Rana  6 test2
-Selma 4 test1
+name,l:label,l:label,age,works_onMichael,Person,Father,37,neo4jSelina,Person,Child,14,Rana,Person,Child,6,Selma,Person,Child,4,
