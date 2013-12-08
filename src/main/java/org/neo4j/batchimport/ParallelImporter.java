@@ -116,7 +116,7 @@ public class ParallelImporter implements NodeStructFactory {
         final Params params = new Params("data/dir nodes.csv relationships.csv #nodes #max-props-per-node #usual-rels-pernode #max-rels-per-node #max-props-per-rel rel,types",args);
         if (params.invalid()) {
             System.err.printf("Usage java -jar batchimport.jar %s%n",params);
-            System.exit(1);
+            return;
         }
         File graphDb = params.file("data/dir");
         String nodesFile = params.string("nodes.csv");
