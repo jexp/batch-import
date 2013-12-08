@@ -67,7 +67,7 @@ public class Importer {
     // todo multiple nodes and rels files
     // todo nodes and rels-files in config
     // todo graphdb in config
-    public static void main(String[] args) throws IOException {
+    public static void main(String... args) throws IOException {
         System.err.println("Usage: Importer data/dir nodes.csv relationships.csv [node_index node-index-name fulltext|exact nodes_index.csv rel_index rel-index-name fulltext|exact rels_index.csv ....]");
         System.err.println("Using: Importer "+join(args," "));
         System.err.println();

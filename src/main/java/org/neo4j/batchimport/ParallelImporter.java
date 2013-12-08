@@ -112,7 +112,7 @@ public class ParallelImporter implements NodeStructFactory {
     }
 
     @SuppressWarnings("unchecked")
-    public static void main(String[] args) throws Exception {
+    public static void main(String... args) throws Exception {
         final Params params = new Params("data/dir nodes.csv relationships.csv #nodes #max-props-per-node #usual-rels-pernode #max-rels-per-node #max-props-per-rel rel,types",args);
         if (params.invalid()) {
             System.err.printf("Usage java -jar batchimport.jar %s%n",params);
