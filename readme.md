@@ -3,7 +3,12 @@
 This software is licensed under the [GPLv3](http://www.gnu.org/licenses/gpl-3.0.en.html) for now. 
 You can ask [Neo Technology](http://neotechnology.com) about a different licensing agreement.
 
-__Works with Neo4j 2.0.0-M05__
+__Works with Neo4j 2.0.0__
+
+To simply use it:
+* [download zip](https://dl.dropboxusercontent.com/u/14493611/batch_importer_20.zip)
+* unzip
+* run `import.sh test.db nodes.csv rels.csv` (on Windows: `import.bat`)
 
 You provide one **tab separated** csv file for nodes and one for relationships (optionally more for indexes)
 

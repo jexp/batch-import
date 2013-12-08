@@ -1,4 +1,4 @@
-MEMORY=4G
+HEAP=4G
 DB=${1-target/graph.db}
 shift
 NODES=${1-nodes.csv}
@@ -7,4 +7,5 @@ RELS=${1-rels.csv}
 shift
 CP=""
 for i in lib/*.jar; do CP="$CP":"$i"; done
-java -classpath $CP -Xmx$MEMORY -Xms$MEMORY org.neo4j.batchimport.Importer batch.properties "$DB" "$NODES" "$RELS" "$@"
+#echo java -classpath $CP -Xmx$HEAP -Xms$HEAP -Dfile.encoding=UTF-8 org.neo4j.batchimport.Importer batch.properties "$DB" "$NODES" "$RELS" "$@"
+java -classpath $CP -Xmx$HEAP -Xms$HEAP -Dfile.encoding=UTF-8 org.neo4j.batchimport.Importer batch.properties "$DB" "$NODES" "$RELS" "$@"
