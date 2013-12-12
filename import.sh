@@ -6,6 +6,10 @@ shift
 RELS=${1-rels.csv}
 shift
 CP=""
-for i in lib/*.jar; do CP="$CP":"$i"; done
+base=`dirname "$0"`
+curdir=`pwd`
+cd "$base"
+for i in lib/*.jar; do CP="$CP":"$base/$i"; done
+cd "$curdir"
 #echo java -classpath $CP -Xmx$HEAP -Xms$HEAP -Dfile.encoding=UTF-8 org.neo4j.batchimport.Importer batch.properties "$DB" "$NODES" "$RELS" "$@"
-java -classpath $CP -Xmx$HEAP -Xms$HEAP -Dfile.encoding=UTF-8 org.neo4j.batchimport.Importer batch.properties "$DB" "$NODES" "$RELS" "$@"
+java -classpath "$CP" -Xmx$HEAP -Xms$HEAP -Dfile.encoding=UTF-8 org.neo4j.batchimport.Importer batch.properties "$DB" "$NODES" "$RELS" "$@"
