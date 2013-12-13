@@ -1,7 +1,5 @@
 *.tsv
 test
-neo4j
-*.log
 .project
 .shell_history
 *.ipr
