@@ -1,3 +1,6 @@
+zip.sh
+*.db/
+lib/
 *.tsv
 test
 .project

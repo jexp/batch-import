@@ -5,6 +5,8 @@ You can ask [Neo Technology](http://neotechnology.com) about a different licensi
 
 __Works with Neo4j 2.0.0__
 
+## Note: The initial reference node is gone in Neo4j 2.0, so node-id numbering changed, see below
+
 To simply use it:
 * [download zip](https://dl.dropboxusercontent.com/u/14493611/batch_importer_20.zip)
 * unzip
@@ -18,21 +20,23 @@ Example data for the files is a small family network
 
 * **tab separated** csv files
 * Property names in first row.
-* If only one file is initially imported, the row number corresponds to the node-id (node 0 is the reference node)
+* If only one file is initially imported, the row number corresponds to the node-id (*starting with 0*)
 * Property values not listed will not be set on the nodes or relationships.
-* Optionally property fields can have a type (defaults to String) indicated with name:type where type is one of (int, long, float, double, boolean, byte, short, char, string). The string value is then converted to that type. Conversion failure will result in abort of the import operation.
+* Optionally property fields can have a type (defaults to String) indicated with name:type where type is one of
+  (int, long, float, double, boolean, byte, short, char, string). The string value is then converted to that type.
+  Conversion failure will result in abort of the import operation.
 * There is a separate "label" type, which should be used for relationship types and/or node labels, (`labels:label`)
 * Property fields may also be arrays by adding "_array" to the types above and separating the data with commas.
 * for non-ascii characters make sure to add `-Dfile.encoding=UTF-8` to the commandline arguments
 * Optionally automatic indexing of properties can be configured with a header like `name:string:users` and a configured index in `batch.properties` like `batch_import.node_index=exact`
   then the property `name` will be indexed in the `users` index for each row with a value there
 * multiple files for nodes and rels, comma separated, without spaces like "node1.csv,node2.csv"
-* you can specify concrete node-id's with: `i:id`
+* you can specify concrete, externally provided node-id's with: `i:id`, both in the node and relationship-files
 * csv files can be zipped individually as *.gz or *.zip
 
 ## Examples
 
-There is also a `sample` directory, please run from the main directory `sh sample/import.sh`
+There is also a `sample` directory, please run from the main directory `./import.sh test.db sample/nodes.csv sample/rels.csv`
 
 ### nodes.csv
 
@@ -44,48 +48,43 @@ There is also a `sample` directory, please run from the main directory `sh sampl
 
 ### rels.csv
 
+Note that the node-id references are numbered from 0 (since Neo4j 2.0)
+
     start	end	type	    since   counter:int
-    1     2   FATHER_OF	1998-07-10  1
-    1     3   FATHER_OF 2007-09-15  2
-    1     4   FATHER_OF 2008-05-03  3
-    3     4   SISTER_OF 2008-05-03  5
-    2     3   SISTER_OF 2007-09-15  7
+    0     1   FATHER_OF	1998-07-10  1
+    0     2   FATHER_OF 2007-09-15  2
+    0     3   FATHER_OF 2008-05-03  3
+    2     3   SISTER_OF 2008-05-03  5
+    1     2   SISTER_OF 2007-09-15  7
 
 
 ## Execution
 
-    mvn clean compile exec:java -Dexec.mainClass="org.neo4j.batchimport.Importer" -Dexec.args="neo4j/data/graph.db nodes.csv rels.csv"
-    
-    or
-    
-    java -server -Dfile.encoding=UTF-8 -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv
+Just use the provided shell script `import.sh` or `import.bat` on Windows
+
+    import.sh test.db nodes.csv rels.csv
 
 
-    ynagzet:batchimport mh$ rm -rf target/db
-    ynagzet:batchimport mh$ mvn clean compile assembly:single
-    [INFO] Scanning for projects...
-    [INFO] ------------------------------------------------------------------------
-    [INFO] Building Simple Batch Importer
-    [INFO]    task-segment: [clean, compile, assembly:single]
-    [INFO] ------------------------------------------------------------------------
-    ...
-    [INFO] Building jar: /Users/mh/java/neo/batchimport/target/batch-import-jar-with-dependencies.jar
-    [INFO] ------------------------------------------------------------------------
-    [INFO] BUILD SUCCESSFUL
-    [INFO] ------------------------------------------------------------------------
+### For Developers
+
+If you want to work on the code and run the importer after making changes:
+
+    mvn clean compile exec:java -Dexec.mainClass="org.neo4j.batchimport.Importer" -Dexec.args="test.db nodes.csv rels.csv"
+
     ynagzet:batchimport mh$ java -server -Xmx4G -jar target/batch-import-jar-with-dependencies.jar target/db nodes.csv rels.csv
     Physical mem: 16384MB, Heap size: 3640MB
+
+    Configuration:
     use_memory_mapped_buffers=false
-    neostore.propertystore.db.index.keys.mapped_memory=5M
+    neostore.nodestore.db.mapped_memory=200M
+    neostore.relationshipstore.db.mapped_memory=1000M
+    neostore.propertystore.db.mapped_memory=1000M
     neostore.propertystore.db.strings.mapped_memory=100M
     neostore.propertystore.db.arrays.mapped_memory=215M
-    neo_store=/Users/mh/java/neo/batchimport/target/db/neostore
-    neostore.relationshipstore.db.mapped_memory=1000M
-    neostore.propertystore.db.index.mapped_memory=5M
-    neostore.propertystore.db.mapped_memory=1000M
+    neo_store=/Users/mh/java/neo/batchimport/test.db
     dump_configuration=true
     cache_type=none
-    neostore.nodestore.db.mapped_memory=200M
+
     ...........................................................................
     Importing 7500000 Nodes took 17 seconds
     ....................................................................................................35818 ms
@@ -94,46 +93,55 @@ There is also a `sample` directory, please run from the main directory `sh sampl
     ....................................................................................................48897 ms
     ............
     Importing 41246740 Relationships took 170 seconds
-    212 seconds
-    ynagzet:batchimport mh$ du -sh target/db/
-    3,2G	target/db/
+    Total 212 seconds
+    ynagzet:batchimport mh$ du -sh test.db
+    3,2G	test.db
 
 ## Parameters
 
-*First parameter* MIGHT be the property-file name then it has to end with .properties, then this file will be used and all other parameters are consumed as usual
+*First parameter* MIGHT be the property-file name, if so it has to end with `.properties`, then this file will be used and all other parameters are consumed as usual
 
-*First parameter* is the graph database directory, a new db will be created in the directory except when `batch_import.keep_db=true` is set in `batch.properties`.
+*First parameter* - the graph database directory, a new db will be created in the directory except when `batch_import.keep_db=true` is set in `batch.properties`.
 
-*Second parameter* supply a comma separated list of nodes-files
+*Second parameter* - a comma separated list of *node-csv-files*
 
-*Third parameter* supply a comma separated list of relationship-files
+*Third parameter* - a comma separated list of *relationship-csv-files*
 
-It is also possible to specifiy those two file-lists in the config:
+It is also possible to specify those two file-lists in the config:
 
 ````
 batch_import.nodes_files=nodes1.csv[,nodes2.csv]
 batch_import.rels_files=rels1.csv[,rels2.csv]
 ````
 
-*Fourth parameter set* of 4 values: `node_index users fulltext nodes_index.csv` or more generally: `node-or-rel-index index-name index-type index-file`
+*Fourth parameter* - index configuration each a set of 4 values: `node_index users fulltext nodes_index.csv` or more generally: `node-or-rel-index index-name index-type index-file`
+
 This parameter set can be repeatedly used, see below. It is also possible to configure this in the config (`batch.properties`)
 
 ````
 batch_import.node_index.users=exact
 ````
 
+## Schema indexes
 
-## Indexing
+Currently schema indexes are not created by the batch-inserter, you could create them upfront and use `batch_import.keep_db=true` to work with the existing database.
+You then have the option of specifying labels for your nodes using a column header like `type:label` and a comma separated list of label values.
+Then on shutdown of the import Neo4j will populate the schema indexes with nodes with the appropriate labels and properties automatically.
+(The index creation is As a rough estimate the index creation will
+
+## (Legacy) Indexing
 
 ### Automatic Indexing
 
 You can automatically index properties of nodes and relationships by adding ":indexName" to the property-header.
 Just configure the indexes in `batch.properties` like so:
 
+If you use `node_auto_index` as the index name, you can also initially populate the automatic node index which is then
+later used and and updated by Neo4j.
+
 ````
 batch_import.node_index.users=exact
 ````
-
 
 ````
 name:string:users    age works_on
@@ -175,7 +183,7 @@ rel_index worked exact rels_index.csv
 Example command line:
 
 ````
-java -server -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv node_index users fulltext nodes_index.csv rel_index worked exact rels_index.csv
+./import.sh test.db nodes.csv rels.csv node_index users fulltext nodes_index.csv rel_index worked exact rels_index.csv
 ````
 ## Examples
 
@@ -183,11 +191,11 @@ java -server -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependenci
 
 ````
 id	name	language
-1	Victor Richards	West Frisian
-2	Virginia Shaw	Korean
-3	Lois Simpson	Belarusian
-4	Randy Bishop	Hiri Motu
-5	Lori Mendoza	Tok Pisin
+0	Victor Richards	West Frisian
+1	Virginia Shaw	Korean
+2	Lois Simpson	Belarusian
+3	Randy Bishop	Hiri Motu
+4	Lori Mendoza	Tok Pisin
 ````
 
 ### rels_index.csv
@@ -299,3 +307,24 @@ with 35 ECU, 60GB RAM, 2TB SSD writing up to 500MB/s, resulting in a store of 1.
 * use id-compression internally to save memory in structs (write a CompressedLongArray)
 * reuse PropertyBlock, PropertyRecords, RelationshipRecords, NodeRecords, probably subclass them and override getId() etc. or copy the code
   from the Store's to work with interfaces
+
+
+## Utilities
+
+### TestDataGenerator
+
+It is a dumb random test data generator (`org.neo4j.batchimport.TestDataGenerator`) that you can run with
+
+./generate.sh #nodes #max-rels-per-node REL1,REL2,REL3 LABEL1,LABEL2,LABEL3
+
+Will generate nodes.csv and rels.csv for those numbers
+
+
+### Relationship-Sorter
+
+Sorts a given relationship-CSV file by min(start,end) as required for the parallel sorter. Uses the data-pump sorter from mapdb
+for the actual sorting with a custom Comparator.
+
+`org.neo4j.batchimport.utils.RelationshipSorter` rels-input.csv rels-output.csv
+
+
