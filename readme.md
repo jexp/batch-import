@@ -5,9 +5,11 @@ You can ask [Neo Technology](http://neotechnology.com) about a different licensi
 
 __Works with Neo4j 2.0.0__
 
-## Note: The initial reference node is gone in Neo4j 2.0, so node-id numbering changed, see below
+** Note: The initial reference node is gone in Neo4j 2.0, so node-id numbering changed, see below**
 
-To simply use it:
+## Binary Download
+
+To simply use it (no source/git/maven required):
 * [download zip](https://dl.dropboxusercontent.com/u/14493611/batch_importer_20.zip)
 * unzip
 * run `import.sh test.db nodes.csv rels.csv` (on Windows: `import.bat`)
