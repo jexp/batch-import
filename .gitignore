@@ -13,4 +13,6 @@ target
 .DS_Store
 .settings
 *.gz
-
+gc.log
+*.zip
+zip19.sh
