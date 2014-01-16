@@ -2,7 +2,6 @@ zip.sh
 *.db/
 lib/
 *.tsv
-test
 .project
 .shell_history
 *.ipr
