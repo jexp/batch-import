@@ -31,11 +31,7 @@ public class CsvLineData extends AbstractLineData {
         if (row==null || row.length==0) return false;
         for (int i = 0; i < row.length && i < lineSize; i++) {
             String value = row[i];
-            if (value != null && !value.isEmpty()) {
-                lineData[i] = headers[i].type == Type.STRING ? value : headers[i].type.convert(value);
-            } else {
-                lineData[i] = null;
-            }
+            lineData[i] = value == null || value.isEmpty() ? null : convert(i, value);
         }
         return true;
     }

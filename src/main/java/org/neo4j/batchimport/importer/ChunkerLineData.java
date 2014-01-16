@@ -52,11 +52,7 @@ public class ChunkerLineData extends AbstractLineData {
                 } while (!isEndOfLineOrFile(value)); // consume until EOL
                 break;
             }
-            if (Chunker.NO_VALUE != value) {
-                lineData[i] = headers[i].type == Type.STRING ? value : headers[i].type.convert(value);
-            } else {
-                lineData[i] = null;
-            }
+            lineData[i] = Chunker.NO_VALUE == value ? null : convert(i, value);
             i++;
         } while (!isEndOfLineOrFile(value));
         if (i<lineSize) {

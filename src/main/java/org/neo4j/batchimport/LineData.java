@@ -18,6 +18,13 @@ public interface LineData {
         public final String name;
         public final Type type;
         public final String indexName; // todo index config in config
+
+        @Override
+        public String toString() {
+            return column + ". " + name +
+                    (type!=null ? " type: " + type : "")+
+                    (indexName!=null? " index: " + indexName : "");
+        }
     }
     boolean processLine(String line);
     Header[] getHeader();

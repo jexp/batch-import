@@ -17,7 +17,7 @@ public abstract class AbstractLineData implements LineData {
     int labelId = 2;
     int explicitLabelId = -1;
     private Object[] properties;
-    private int rows;
+    protected int rows;
     private int propertyCount;
     private boolean hasIndex=false;
     private boolean done;
@@ -177,5 +177,14 @@ public abstract class AbstractLineData implements LineData {
 
     public int getColumnCount() {
         return this.propertyCount/2;
+    }
+
+    protected Object convert(int column, String value) {
+        try {
+            return headers[column].type == Type.STRING ? value : headers[column].type.convert(value);
+        } catch(Exception e) {
+            // todo potentially skip?
+            throw new RuntimeException("Error converting value row "+rows+" column "+headers[column]+" value "+value+" error: "+e.getClass().getSimpleName()+": "+e.getMessage(),e);
+        }
     }
 }
