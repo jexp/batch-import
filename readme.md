@@ -53,7 +53,7 @@ There is also a `sample` directory, please run from the main directory `sh sampl
     
     or
     
-    java -server -Dfile.encoding=UTF-8 -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv
+    java -server -Dfile.encoding=UTF-8 -Xmx4G -jar target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv
 
 
     ynagzet:batchimport mh$ rm -rf target/db
@@ -119,7 +119,7 @@ batch_import.node_index.users=exact
 
 
 ## Indexing
-
+                      
 ### Automatic Indexing
 
 You can automatically index properties of nodes and relationships by adding ":indexName" to the property-header.
@@ -171,7 +171,18 @@ Example command line:
 
 ````
 java -server -Xmx4G -jar ../batch-import/target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv node_index users fulltext nodes_index.csv rel_index worked exact rels_index.csv
+````         
+
+### Using Neo4j's Automatic Indexing
+
+The auto-indexing elsewhere in this file pertains to the *batch inserter's* ability to automatically index. If you want to 
+use this cool feature from the batch inserter, there's a little gotcha. You still need to enable the batch inserter's feature
+with `batch_import.node_index` but then instead of specifying the name of a regular index, specify the auto index's name like so:
+
+```` 
+batch_import.node_index.node_auto_index=exact
 ````
+
 ## Examples
 
 ### nodes_index.csv
