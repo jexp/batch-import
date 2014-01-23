@@ -71,8 +71,25 @@ Just use the provided shell script `import.sh` or `import.bat` on Windows
 
 If you want to work on the code and run the importer after making changes:
 
-    mvn clean compile exec:java -Dexec.mainClass="org.neo4j.batchimport.Importer" -Dexec.args="test.db nodes.csv rels.csv"
+    mvn clean compile exec:java -Dexec.mainClass="org.neo4j.batchimport.Importer" -Dexec.args="neo4j/data/graph.db nodes.csv rels.csv"
+    
+    or
+    
+    java -server -Dfile.encoding=UTF-8 -Xmx4G -jar target/batch-import-jar-with-dependencies.jar neo4j/data/graph.db nodes.csv rels.csv
 
+
+    ynagzet:batchimport mh$ rm -rf target/db
+    ynagzet:batchimport mh$ mvn clean compile assembly:single
+    [INFO] Scanning for projects...
+    [INFO] ------------------------------------------------------------------------
+    [INFO] Building Simple Batch Importer
+    [INFO]    task-segment: [clean, compile, assembly:single]
+    [INFO] ------------------------------------------------------------------------
+    ...
+    [INFO] Building jar: /Users/mh/java/neo/batchimport/target/batch-import-jar-with-dependencies.jar
+    [INFO] ------------------------------------------------------------------------
+    [INFO] BUILD SUCCESSFUL
+    [INFO] ------------------------------------------------------------------------
     ynagzet:batchimport mh$ java -server -Xmx4G -jar target/batch-import-jar-with-dependencies.jar target/db nodes.csv rels.csv
     Physical mem: 16384MB, Heap size: 3640MB
 
@@ -133,13 +150,10 @@ Then on shutdown of the import Neo4j will populate the schema indexes with nodes
 
 ## (Legacy) Indexing
 
-### Automatic Indexing
+### Indexing of inserted properties
 
-You can automatically index properties of nodes and relationships by adding ":indexName" to the property-header.
+You can automatically index properties of nodes and relationships by adding ":indexName" to the property-column-header.
 Just configure the indexes in `batch.properties` like so:
-
-If you use `node_auto_index` as the index name, you can also initially populate the automatic node index which is then
-later used and and updated by Neo4j.
 
 ````
 batch_import.node_index.users=exact
@@ -152,6 +166,10 @@ Selina  14
 Rana    6
 Selma   4
 ````
+
+**If you use `node_auto_index` as the index name, you can also initially populate Neo4j's automatic node index which is then
+later used and and updated while working with the database.**
+
 
 In the relationships-file you can optionally specify that the start and end-node should be looked up from the index in the same way
 
@@ -186,7 +204,21 @@ Example command line:
 
 ````
 ./import.sh test.db nodes.csv rels.csv node_index users fulltext nodes_index.csv rel_index worked exact rels_index.csv
+````         
+
+### Using Neo4j's Automatic Indexing
+
+The auto-indexing elsewhere in this file pertains to the *batch inserter's* ability to automatically index. If you want to 
+use this cool feature from the batch inserter, there's a little gotcha. You still need to enable the batch inserter's feature
+with `batch_import.node_index` but then instead of specifying the name of a regular index, specify the auto index's name like so:
+
+```` 
+batch_import.node_index.node_auto_index=exact
 ````
+
+And you have to make sure to also enable automatic indexing in your regular Neo4j database's (`conf/neo4j.properties`) and 
+specify the correct node properties to be indexed.
+
 ## Examples
 
 ### nodes_index.csv
@@ -223,7 +255,7 @@ append only so don't need that much RAM. Below is an example for about 6GB RAM, 
 ````
 cache_type=none
 use_memory_mapped_buffers=true
-# 9 bytes per node
+# 14 bytes per node
 neostore.nodestore.db.mapped_memory=200M
 # 33 bytes per relationships
 neostore.relationshipstore.db.mapped_memory=3G
