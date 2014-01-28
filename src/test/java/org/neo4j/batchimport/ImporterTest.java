@@ -62,6 +62,16 @@ public class ImporterTest {
     }
 
     @Test
+    public void testImportHashes() throws Exception {
+        importer.importNodes(new StringReader("a\n000000F8BE951D6DE6480F4AFDFB670C553E47C0\n0000021449360C1A398ED9A18800B2B13AA098A4\n00000DABDE4C555FC82F7D534835247B94873C2C\n00001BE4128DB41729365A41D3AC1D019E5ED8A6\n"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "000000F8BE951D6DE6480F4AFDFB670C553E47C0")));
+        verify(inserter, times(1)).createNode(eq(map("a", "0000021449360C1A398ED9A18800B2B13AA098A4")));
+        verify(inserter, times(1)).createNode(eq(map("a", "00000DABDE4C555FC82F7D534835247B94873C2C")));
+        verify(inserter, times(1)).createNode(eq(map("a", "00001BE4128DB41729365A41D3AC1D019E5ED8A6")));
+    }
+
+    @Test
     public void testImportSimpleNodeWithId() throws Exception {
         importer.importNodes(new StringReader("i:id\ta\n123\tfoo"));
         importer.finish();

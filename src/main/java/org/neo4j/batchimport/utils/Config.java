@@ -144,6 +144,7 @@ public class Config {
 
     public static Collection<File> toFiles(String commaSeparatedFileList) {
         Collection<File> files=new ArrayList<File>();
+        if (commaSeparatedFileList==null || commaSeparatedFileList.isEmpty()) return files;
         for (String part : commaSeparatedFileList.split(",")) {
             final File file = new File(part);
             if (file.exists() && file.canRead() && file.isFile()) files.add(file);
