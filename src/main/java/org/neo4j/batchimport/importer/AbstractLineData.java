@@ -15,8 +15,9 @@ public abstract class AbstractLineData implements LineData {
     protected int lineSize;
     protected Header[] headers;
     int labelId = 2;
+    int explicitLabelId = -1;
     private Object[] properties;
-    private int rows;
+    protected int rows;
     private int propertyCount;
     private boolean hasIndex=false;
     private boolean done;
@@ -46,6 +47,7 @@ public abstract class AbstractLineData implements LineData {
             if (type==Type.LABEL) { //  || name.toLowerCase().matches("^(type|types|label|labels)$")) {
                 labelId=i;
                 type=Type.LABEL;
+                explicitLabelId = i;
             }
             headers[i]=new Header(i, name, type, indexName);
             i++;
@@ -106,8 +108,15 @@ public abstract class AbstractLineData implements LineData {
 
     @Override
     public String[] getTypeLabels() {
-        Object labels = getValue(labelId);
+        if (explicitLabelId==-1) return null;
+        Object labels = getValue(explicitLabelId);
         return labels instanceof String ? new String[]{ labels.toString() } : (String[]) labels;
+    }
+
+    @Override
+    public String getRelationshipTypeLabel() {
+        Object labels = getValue(labelId);
+        return labels instanceof String[] ? ((String[])labels)[0] : (String)labels;
     }
 
     @Override
@@ -137,7 +146,7 @@ public abstract class AbstractLineData implements LineData {
         for (int i = 0; i < lineSize; i++) {
             if (lineData[i] == null) continue;
             notnull++;
-            if (i<offset) continue;
+            if (i<offset || i == explicitLabelId) continue;
             final Header header = getHeader(i);
             if (!header.type.isProperty()) continue;
             properties[propertyCount++]= header.name;
@@ -168,5 +177,14 @@ public abstract class AbstractLineData implements LineData {
 
     public int getColumnCount() {
         return this.propertyCount/2;
+    }
+
+    protected Object convert(int column, String value) {
+        try {
+            return headers[column].type == Type.STRING ? value : headers[column].type.convert(value);
+        } catch(Exception e) {
+            // todo potentially skip?
+            throw new RuntimeException("Error converting value row "+rows+" column "+headers[column]+" value "+value+" error: "+e.getClass().getSimpleName()+": "+e.getMessage(),e);
+        }
     }
 }

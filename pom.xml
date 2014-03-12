@@ -1,29 +1,26 @@
 <project>
-	<modelVersion>4.0.0</modelVersion>
-	<groupId>org.neo4j</groupId>
-	<artifactId>batch-import</artifactId>
-	<version>1.9-SNAPSHOT</version>
-	<name>Neo4j Batch Importer</name>
-	<properties>
-		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<neo4j.version>1.9</neo4j.version>
-		<license-text.header>GPL-3-header.txt</license-text.header>
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>org.neo4j</groupId>
+    <artifactId>batch-import</artifactId>
+    <version>2.0.0</version>
+    <name>Neo4j Batch Importer</name>
+    <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <neo4j.version>2.0.0</neo4j.version>
+        <license-text.header>GPL-3-header.txt</license-text.header>
+    </properties>
+  <repositories>
+    <repository>
+      <id>Neo4j Snapshots</id>
+      <url>http://m2.neo4j.org/content/repositories/snapshots</url>
+    </repository>
+  </repositories>
 
-		<!-- github server corresponds to entry in ~/.m2/settings.xml -->
-		<github.global.server>github</github.global.server>
-	</properties>
-	<repositories>
-		<repository>
-			<id>Neo4j Snapshots</id>
-			<url>http://m2.neo4j.org/content/repositories/snapshots</url>
-		</repository>
-	</repositories>
-
-	<licenses>
-		<license>
-			<name>GNU General Public License, Version 3</name>
-			<url>http://www.gnu.org/licenses/gpl-3.0-standalone.html</url>
-			<comments>The software ("Software") developed and owned by Network Engine for
+    <licenses>
+      <license>
+        <name>GNU General Public License, Version 3</name>
+        <url>http://www.gnu.org/licenses/gpl-3.0-standalone.html</url>
+        <comments>The software ("Software") developed and owned by Network Engine for
   Objects in Lund AB (referred to in this notice as "Neo Technology") is
   licensed under the GNU GENERAL PUBLIC LICENSE Version 3 to all third
   parties and that license is included below.
@@ -36,66 +33,66 @@
   Version 3 and you may use the Software solely pursuant to the terms of
   the relevant Commercial Agreement.
         </comments>
-		</license>
-	</licenses>
+      </license>
+    </licenses>
 
-	<dependencies>
-		<dependency>
-			<groupId>net.sf.opencsv</groupId>
-			<artifactId>opencsv</artifactId>
-			<version>2.3</version>
-		</dependency>
-		<dependency>
-			<groupId>org.mapdb</groupId>
-			<artifactId>mapdb</artifactId>
-			<version>0.9.3</version>
-		</dependency>
-		<dependency>
-			<groupId>edu.ucla.sspace</groupId>
-			<artifactId>sspace</artifactId>
-			<version>2.0.3</version>
-		</dependency>
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<version>4.8.1</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>log4j</groupId>
-			<artifactId>log4j</artifactId>
-			<version>1.2.17</version>
-		</dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>1.8.5</version>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-kernel</artifactId>
-			<version>${neo4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-enterprise</artifactId>
-			<version>${neo4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.neo4j</groupId>
-			<artifactId>neo4j-lucene-index</artifactId>
-			<version>${neo4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.googlecode.disruptor</groupId>
-			<artifactId>disruptor</artifactId>
-			<version>2.10.3</version>
-		</dependency>
-	</dependencies>
-	<build>
-		<plugins>
-			<plugin>
+    <dependencies>
+        <dependency>
+            <groupId>net.sf.opencsv</groupId>
+            <artifactId>opencsv</artifactId>
+            <version>2.3</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mapdb</groupId>
+            <artifactId>mapdb</artifactId>
+            <version>0.9.3</version>
+        </dependency>
+        <dependency>
+            <groupId>edu.ucla.sspace</groupId>
+            <artifactId>sspace</artifactId>
+            <version>2.0.3</version>
+        </dependency>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.8.1</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>log4j</artifactId>
+            <version>1.2.17</version>
+        </dependency>
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-core</artifactId>
+            <version>1.8.5</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-kernel</artifactId>
+            <version>${neo4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-enterprise</artifactId>
+            <version>${neo4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.neo4j</groupId>
+            <artifactId>neo4j-lucene-index</artifactId>
+            <version>${neo4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.googlecode.disruptor</groupId>
+            <artifactId>disruptor</artifactId>
+            <version>2.10.3</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <plugins>
+            <plugin>
 				<artifactId>maven-deploy-plugin</artifactId>
 				<version>2.8.1</version>
 				<configuration>
@@ -163,4 +160,31 @@
 		</repository>
 	</distributionManagement>
 
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>2.1</version>
+                <configuration>
+                    <source>1.7</source>
+                    <target>1.7</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <finalName>
+                        batch-import
+                    </finalName>
+                    <archive>
+                        <manifest>
+                            <mainClass>org.neo4j.batchimport.Importer</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

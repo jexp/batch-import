@@ -29,7 +29,7 @@ public class TestDataGenerator {
         System.out.println("Using: TestDataGenerator "+nodes+" "+relsPerNode+" "+ Utils.join(types, ",")+" "+(sorted?"sorted":""));
 
         BufferedWriter nodeFile = new BufferedWriter(new FileWriter("nodes.csv"));
-        nodeFile.write("Node\tRels\tProperty\tCounter:int\n");
+        nodeFile.write("Node\tRels\tProperty\tLabel:label\tCounter:int\n");
         BufferedWriter relFile = new BufferedWriter(new FileWriter("rels.csv"));
         relFile.write("Start\tEnde\tType\tProperty\tCounter:long\n");
 
@@ -49,7 +49,7 @@ public class TestDataGenerator {
         int numTypes = types.length;
         for (int node = 0; node < nodes; node++) {
             final int rels = rnd.nextInt(relsPerNode);
-            nodeFile.write(node+"\t"+rels+"\tTEST\t"+node+"\n");
+            nodeFile.write(node+"\t"+rels+"\tTEST\t"+types[node % numTypes]+"\t"+node+"\n");
             for (int rel = rels; rel >= 0; rel--) {
                 relCount++;
                 final int node1 = rnd.nextInt(nodes);

@@ -32,6 +32,10 @@ public class StdOutReport implements Report {
         batchTime = now;
     }
 
+    public long getCount() {
+        return count;
+    }
+
     @Override
     public void finishImport(String type) {
         System.out.println("\nImporting " + count + " " + type + " took " + (System.currentTimeMillis() - time) / 1000 + " seconds ");

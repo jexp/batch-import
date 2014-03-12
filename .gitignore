@@ -1,7 +1,7 @@
+zip.sh
+*.db/
+lib/
 *.tsv
-test
-neo4j
-*.log
 .project
 .shell_history
 *.ipr
@@ -13,4 +13,6 @@ target
 .DS_Store
 .settings
 *.gz
-
+gc.log
+*.zip
+zip19.sh

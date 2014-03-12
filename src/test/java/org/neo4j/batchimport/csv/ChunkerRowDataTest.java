@@ -74,6 +74,19 @@ public class ChunkerRowDataTest {
         assertEquals("3",map.get("c"));
     }
     @Test
+    public void testHandleNewLines() throws Exception {
+        ChunkerLineData rowData = new ChunkerLineData(new StringReader("a,b,c:int\r\n1,2,3\r\n4,5,6"), ',', 0);
+        Map<String,Object> map = rowData.updateMap();
+        assertEquals("1",map.get("a"));
+        assertEquals("2",map.get("b"));
+        assertEquals(3,map.get("c"));
+        map = rowData.updateMap();
+        assertEquals("4",map.get("a"));
+        assertEquals("5",map.get("b"));
+        assertEquals(6,map.get("c"));
+    }
+
+    @Test
     public void testNormalWithCommas() throws Exception {
         ChunkerLineData rowData = new ChunkerLineData(new StringReader("a,b,c\n1,2,3"), ',', 0);
         final Map<String,Object> map = rowData.updateMap();

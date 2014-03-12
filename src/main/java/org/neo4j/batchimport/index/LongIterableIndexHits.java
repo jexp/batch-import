@@ -1,5 +1,6 @@
 package org.neo4j.batchimport.index;
 
+import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexHits;
 import org.neo4j.helpers.collection.IteratorUtil;
 
@@ -9,7 +10,7 @@ import java.util.Iterator;
 * @author mh
 * @since 11.06.13
 */
-public class LongIterableIndexHits implements IndexHits<Long> {
+public class LongIterableIndexHits implements IndexHits<Long>, ResourceIterator<Long> {
 
     private final Iterable<Long> values;
     private Iterator<Long> iterator;
@@ -26,6 +27,9 @@ public class LongIterableIndexHits implements IndexHits<Long> {
 
     @Override
     public void close() {
+        if (iterator instanceof ResourceIterator) {
+            ((ResourceIterator)iterator).close();
+        }
     }
 
     @Override
@@ -39,10 +43,11 @@ public class LongIterableIndexHits implements IndexHits<Long> {
     }
 
     @Override
-    public Iterator<Long> iterator() {
+    public ResourceIterator<Long> iterator() {
         iterator = values.iterator();
-        return iterator;
+        return this;
     }
+
 
     @Override
     public boolean hasNext() {

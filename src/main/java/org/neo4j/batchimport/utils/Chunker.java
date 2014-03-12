@@ -11,6 +11,7 @@ public class Chunker {
     public static final String EOF = null;
     public static final String EOL = "\n".intern();
     public static final String NO_VALUE = "".intern();
+    public static final char EOL_CHAR2 = '\r';
     public static final char EOL_CHAR = '\n';
     public static final char EOF_CHAR = (char)-1;
     public static final int PREV_EOL_CHAR = -2;
@@ -73,6 +74,7 @@ public class Chunker {
             return NO_VALUE;
         }
         lastChar=ch;
+        if (buffer[start + count-1]==EOL_CHAR2) count--;
         return String.valueOf(buffer, start, count);
     }
 

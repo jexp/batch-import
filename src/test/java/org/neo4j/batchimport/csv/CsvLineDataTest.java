@@ -1,5 +1,6 @@
 package org.neo4j.batchimport.csv;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.neo4j.batchimport.importer.CsvLineData;
 
@@ -13,6 +14,21 @@ import static org.junit.Assert.assertEquals;
  * @since 29.11.12
  */
 public class CsvLineDataTest {
+
+    @Test
+    public void testInvalidConversion() throws Exception {
+        try {
+            CsvLineData rowData = new CsvLineData(new StringReader("a\tb:int\tc\n2\tfoo\t3"), '\t', 0);
+            rowData.updateMap();
+            Assert.fail("Expected conversion exception");
+        } catch(RuntimeException e) {
+            assertEquals(true,e.getMessage().contains("row 1"));
+            assertEquals(true,e.getMessage().contains("foo"));
+            assertEquals(true,e.getMessage().contains("1. b"));
+            assertEquals(true,e.getMessage().contains("type: INT"));
+            assertEquals(true,e.getMessage().contains("NumberFormatException"));
+        }
+    }
 
     @Test
     public void testTrailingEmptyCells() throws Exception {

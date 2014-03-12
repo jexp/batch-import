@@ -12,4 +12,6 @@ public interface Report {
     void dots();
 
     void finishImport(String type);
+
+    long getCount();
 }

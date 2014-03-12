@@ -5,6 +5,8 @@ import org.junit.Test;
 import org.mockito.Matchers;
 import org.neo4j.batchimport.index.LongIterableIndexHits;
 import org.neo4j.batchimport.utils.Config;
+import org.neo4j.graphdb.DynamicLabel;
+import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.RelationshipType;
 import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserter;
@@ -60,10 +62,40 @@ public class ImporterTest {
     }
 
     @Test
+    public void testImportHashes() throws Exception {
+        importer.importNodes(new StringReader("a\n000000F8BE951D6DE6480F4AFDFB670C553E47C0\n0000021449360C1A398ED9A18800B2B13AA098A4\n00000DABDE4C555FC82F7D534835247B94873C2C\n00001BE4128DB41729365A41D3AC1D019E5ED8A6\n"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "000000F8BE951D6DE6480F4AFDFB670C553E47C0")));
+        verify(inserter, times(1)).createNode(eq(map("a", "0000021449360C1A398ED9A18800B2B13AA098A4")));
+        verify(inserter, times(1)).createNode(eq(map("a", "00000DABDE4C555FC82F7D534835247B94873C2C")));
+        verify(inserter, times(1)).createNode(eq(map("a", "00001BE4128DB41729365A41D3AC1D019E5ED8A6")));
+    }
+
+    @Test
     public void testImportSimpleNodeWithId() throws Exception {
         importer.importNodes(new StringReader("i:id\ta\n123\tfoo"));
         importer.finish();
         verify(inserter, times(1)).createNode(eq(123L),eq(map("a", "foo")));
+    }
+
+    @Test
+    public void testImportNodeWithNoLabel() throws Exception {
+        importer.importNodes(new StringReader("a\t:label\nfoo\t"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "foo")));
+    }
+    @Test
+    public void testImportNodeWithLabel() throws Exception {
+        importer.importNodes(new StringReader("a\t:label\nfoo\tbar"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "foo")),eq(DynamicLabel.label("bar")));
+    }
+
+    @Test
+    public void testImportNodeWithTwoLabels() throws Exception {
+        importer.importNodes(new StringReader("a\t:label\nfoo\tbar,bor"));
+        importer.finish();
+        verify(inserter, times(1)).createNode(eq(map("a", "foo")),eq(DynamicLabel.label("bar")),eq(DynamicLabel.label("bor")));
     }
 
     @Test
