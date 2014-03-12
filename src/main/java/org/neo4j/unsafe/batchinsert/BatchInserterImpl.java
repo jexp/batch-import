@@ -64,6 +64,7 @@ import org.neo4j.kernel.StoreLocker;
 import org.neo4j.kernel.api.constraints.UniquenessConstraint;
 import org.neo4j.kernel.api.exceptions.KernelException;
 import org.neo4j.kernel.api.index.IndexConfiguration;
+import org.neo4j.kernel.api.index.IndexDescriptor;
 import org.neo4j.kernel.api.index.IndexEntryConflictException;
 import org.neo4j.kernel.api.index.IndexPopulator;
 import org.neo4j.kernel.api.index.InternalIndexState;
@@ -141,6 +142,7 @@ public class BatchInserterImpl implements BatchInserter {
 	private final IdGeneratorFactory idGeneratorFactory;
 	private final SchemaIndexProviderMap schemaIndexProviders;
 	private final LabelScanStore labelScanStore;
+	private final LabelScanWriter labelScanWriter;
 	// TODO use Logging instead
 	private final StringLogger msgLog;
 	private final Logging logging;
@@ -231,6 +233,7 @@ public class BatchInserterImpl implements BatchInserter {
 				.add(extensions.resolveDependency(LabelScanStoreProvider.class,
 						LabelScanStoreProvider.HIGHEST_PRIORITIZED)
 						.getLabelScanStore());
+		labelScanWriter = labelScanStore.newWriter();
 		actions = new BatchSchemaActions();
 	}
 
@@ -328,9 +331,13 @@ public class BatchInserterImpl implements BatchInserter {
 			labelIds[i] = rule.getLabel();
 			propertyKeyIds[i] = rule.getPropertyKey();
 
+			IndexDescriptor descriptor = new IndexDescriptor(rule.getLabel(),
+					rule.getPropertyKey());
 			populators[i] = schemaIndexProviders.apply(
 					rule.getProviderDescriptor()).getPopulator(rule.getId(),
+					descriptor,
 					new IndexConfiguration(rule.isConstraintIndex()));
+
 			populators[i].create();
 		}
 
@@ -383,7 +390,10 @@ public class BatchInserterImpl implements BatchInserter {
 		}
 
 		private void writeAndResetBatch() throws IOException {
-			labelScanStore.updateAndCommit(iterator(cursor, updateBatch));
+			Iterator<NodeLabelUpdate> iter = iterator(cursor, updateBatch);
+			while (iter.hasNext()) {
+				labelScanWriter.write(iter.next());
+			}
 			cursor = 0;
 		}
 
