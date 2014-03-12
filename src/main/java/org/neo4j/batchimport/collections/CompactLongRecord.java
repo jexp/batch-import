@@ -1,8 +1,5 @@
 package org.neo4j.batchimport.collections;
 
-import edu.ucla.sspace.util.primitive.IntIterator;
-
-import java.util.Arrays;
 
 /**
 * @author mh

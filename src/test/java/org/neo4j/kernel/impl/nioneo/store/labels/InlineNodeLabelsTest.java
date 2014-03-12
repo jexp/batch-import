@@ -1,18 +1,16 @@
 package org.neo4j.kernel.impl.nioneo.store.labels;
 
-import org.junit.Test;
-import org.mockito.Mockito;
-import org.neo4j.batchimport.handlers.LabelIdEncodingHandler;
-import org.neo4j.kernel.impl.nioneo.store.DynamicRecord;
-import org.neo4j.kernel.impl.nioneo.store.NodeRecord;
+import static org.junit.Assert.assertEquals;
+import static org.mockito.Matchers.eq;
+import static org.neo4j.batchimport.handlers.LabelIdEncodingHandler.LABEL_BITS;
 
 import java.util.Collections;
 import java.util.List;
 
-import static java.util.Arrays.copyOf;
-import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.eq;
-import static org.neo4j.batchimport.handlers.LabelIdEncodingHandler.LABEL_BITS;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.neo4j.kernel.impl.nioneo.store.DynamicRecord;
+import org.neo4j.kernel.impl.nioneo.store.NodeRecord;
 
 /**
  * @author Michael Hunger @since 02.11.13

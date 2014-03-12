@@ -1,5 +1,12 @@
 package org.neo4j.batchimport;
 
+import static java.util.Arrays.asList;
+import static org.neo4j.helpers.collection.MapUtil.stringMap;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.Map;
+
 import org.apache.log4j.Logger;
 import org.junit.Ignore;
 import org.neo4j.batchimport.structs.NodeStruct;
@@ -7,13 +14,6 @@ import org.neo4j.consistency.ConsistencyCheckTool;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
-
-import java.io.*;
-import java.util.Map;
-
-import static java.util.Arrays.asList;
-import static org.neo4j.helpers.collection.MapUtil.map;
-import static org.neo4j.helpers.collection.MapUtil.stringMap;
 
 // -server -d64 -Xmx4G -XX:+UseParNewGC
 
@@ -57,7 +57,6 @@ public class DisruptorTest {
     private static final boolean RUN_CHECK = false;
     private static final File PROP_FILE = new File("batch.properties");
 
-    @SuppressWarnings("unchecked")
     public static void main(String[] args) throws Exception {
         FileUtils.deleteRecursively(new File(STORE_DIR));
         final DisruptorBatchInserter inserter = new DisruptorBatchInserter(STORE_DIR, config(), NODES_TO_CREATE, new TestNodeStructFactory(NODES_TO_CREATE));

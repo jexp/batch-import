@@ -1,12 +1,9 @@
 package org.neo4j.batchimport.handlers;
 
-import com.lmax.disruptor.EventHandler;
-import org.neo4j.batchimport.collections.ConcurrentLongReverseRelationshipMap;
-import org.neo4j.batchimport.Utils;
-import org.neo4j.batchimport.collections.ReverseRelationshipMap;
 import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.batchimport.structs.Relationship;
-import org.neo4j.kernel.impl.nioneo.store.Record;
+
+import com.lmax.disruptor.EventHandler;
 
 /**
 * @author mh

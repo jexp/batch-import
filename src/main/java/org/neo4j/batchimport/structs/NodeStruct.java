@@ -1,10 +1,9 @@
 package org.neo4j.batchimport.structs;
 
-import org.neo4j.kernel.impl.nioneo.store.Record;
-
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
+
+import org.neo4j.kernel.impl.nioneo.store.Record;
 
 /**
 * @author mh

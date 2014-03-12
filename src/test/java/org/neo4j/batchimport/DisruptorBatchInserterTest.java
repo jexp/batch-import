@@ -2,11 +2,7 @@ package org.neo4j.batchimport;
 
 import org.junit.Test;
 import org.neo4j.batchimport.handlers.RelationshipIdHandler;
-import org.neo4j.batchimport.handlers.RelationshipRecordWriter;
-import org.neo4j.batchimport.handlers.RelationshipWriteHandler;
 import org.neo4j.batchimport.structs.NodeStruct;
-import org.neo4j.batchimport.structs.Relationship;
-import org.neo4j.kernel.impl.nioneo.store.NodeRecord;
 
 /**
  * @author mh

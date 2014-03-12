@@ -28,7 +28,7 @@ public class LongIterableIndexHits implements IndexHits<Long>, ResourceIterator<
     @Override
     public void close() {
         if (iterator instanceof ResourceIterator) {
-            ((ResourceIterator)iterator).close();
+            ((ResourceIterator<Long>)iterator).close();
         }
     }
 

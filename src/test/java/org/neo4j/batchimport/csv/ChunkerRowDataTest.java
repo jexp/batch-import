@@ -1,13 +1,12 @@
 package org.neo4j.batchimport.csv;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.neo4j.batchimport.importer.ChunkerLineData;
+import static org.junit.Assert.assertEquals;
 
 import java.io.StringReader;
 import java.util.Map;
 
-import static org.junit.Assert.assertEquals;
+import org.junit.Test;
+import org.neo4j.batchimport.importer.ChunkerLineData;
 
 /**
  * @author mh

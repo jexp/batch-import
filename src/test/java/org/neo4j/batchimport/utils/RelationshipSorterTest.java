@@ -1,15 +1,14 @@
 package org.neo4j.batchimport.utils;
 
-import org.junit.Ignore;
-import org.junit.Test;
-import org.neo4j.helpers.collection.IteratorUtil;
+import static org.junit.Assert.assertEquals;
+import static org.neo4j.batchimport.utils.FileIterator.DELIM;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.FileWriter;
 
-import static org.junit.Assert.assertEquals;
-import static org.neo4j.batchimport.utils.FileIterator.DELIM;
+import org.junit.Test;
+import org.neo4j.helpers.collection.IteratorUtil;
 
 /**
  * @author Michael Hunger @since 04.11.13
@@ -51,6 +50,7 @@ public class RelationshipSorterTest {
             last = parts;
             count++;
         }
+        reader.close();
         assertEquals(written,count);
     }
 }

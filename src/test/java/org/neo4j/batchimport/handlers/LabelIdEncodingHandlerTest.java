@@ -1,13 +1,11 @@
 package org.neo4j.batchimport.handlers;
 
-import org.junit.Ignore;
-import org.junit.Test;
-
-import java.util.Arrays;
-
 import static java.util.Arrays.copyOf;
 import static org.junit.Assert.assertEquals;
 import static org.neo4j.batchimport.handlers.LabelIdEncodingHandler.LABEL_BITS;
+
+import org.junit.Ignore;
+import org.junit.Test;
 
 /**
  * @author Michael Hunger @since 02.11.13

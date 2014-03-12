@@ -33,6 +33,7 @@ public class OpenCSVPerformanceTest {
         while ((line = csvReader.readNext()) != null) {
             res += line.length;
         }
+        csvReader.close();
         time = System.currentTimeMillis() - time;
         System.out.println("time = " + time + " ms.");
         Assert.assertEquals(ROWS * COLS, res);

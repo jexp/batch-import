@@ -1,13 +1,13 @@
 package org.neo4j.batchimport.csv;
 
+import java.io.BufferedReader;
+import java.io.FileReader;
+
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.neo4j.batchimport.importer.RowData;
 import org.neo4j.batchimport.utils.Chunker;
-
-import java.io.*;
 
 /**
  * @author mh

@@ -1,9 +1,5 @@
 package org.neo4j.batchimport.handlers;
 
-import com.lmax.disruptor.EventHandler;
-import org.neo4j.batchimport.structs.NodeStruct;
-import org.neo4j.kernel.impl.nioneo.store.Record;
-
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;

@@ -1,13 +1,12 @@
 package org.neo4j.batchimport.utils;
 
-import org.neo4j.helpers.collection.ArrayIterator;
-import org.neo4j.helpers.collection.IteratorWrapper;
-
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
+
+import org.neo4j.helpers.collection.IteratorWrapper;
 
 /**
  * @author Michael Hunger @since 04.11.13

@@ -1,16 +1,12 @@
 package org.neo4j.batchimport.handlers;
 
-import com.lmax.disruptor.EventHandler;
-import org.neo4j.batchimport.structs.NodeStruct;
-import org.neo4j.batchimport.structs.Relationship;
-import org.neo4j.kernel.impl.nioneo.store.DynamicRecord;
-import org.neo4j.kernel.impl.util.Bits;
+import static java.lang.Long.highestOneBit;
 
 import java.util.Arrays;
-import java.util.Collection;
 
-import static java.lang.Long.highestOneBit;
-import static org.neo4j.kernel.impl.util.Bits.bits;
+import org.neo4j.batchimport.structs.NodeStruct;
+
+import com.lmax.disruptor.EventHandler;
 
 /**
  * @author mh

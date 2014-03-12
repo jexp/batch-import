@@ -111,7 +111,6 @@ public class ParallelImporter implements NodeStructFactory {
         return new StdOutReport(10 * 1000 * 1000, 100);
     }
 
-    @SuppressWarnings("unchecked")
     public static void main(String... args) throws Exception {
         final Params params = new Params("data/dir nodes.csv relationships.csv #nodes #max-props-per-node #usual-rels-pernode #max-rels-per-node #max-props-per-rel rel,types",args);
         if (params.invalid()) {

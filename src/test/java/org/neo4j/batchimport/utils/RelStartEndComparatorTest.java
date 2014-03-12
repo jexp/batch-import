@@ -1,10 +1,9 @@
 package org.neo4j.batchimport.utils;
 
+import static org.neo4j.batchimport.utils.FileIterator.Line.from;
+
 import org.junit.Assert;
 import org.junit.Test;
-
-import static org.junit.Assert.assertEquals;
-import static org.neo4j.batchimport.utils.FileIterator.Line.from;
 
 /**
  * @author Michael Hunger @since 04.11.13

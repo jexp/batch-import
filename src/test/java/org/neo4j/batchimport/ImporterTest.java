@@ -1,29 +1,34 @@
 package org.neo4j.batchimport;
 
-import org.junit.Before;
-import org.junit.Test;
-import org.mockito.Matchers;
-import org.neo4j.batchimport.index.LongIterableIndexHits;
-import org.neo4j.batchimport.utils.Config;
-import org.neo4j.graphdb.DynamicLabel;
-import org.neo4j.graphdb.Label;
-import org.neo4j.graphdb.RelationshipType;
-import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
-import org.neo4j.unsafe.batchinsert.BatchInserter;
-import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
-import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
+import static java.util.Arrays.asList;
+import static org.mockito.Matchers.anyMap;
+import static org.mockito.Matchers.argThat;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.neo4j.helpers.collection.MapUtil.map;
 
 import java.io.File;
 import java.io.StringReader;
 import java.util.Arrays;
 import java.util.Map;
 
-import static java.util.Arrays.*;
 import org.junit.Assert;
+import org.junit.Before;
+import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import static org.mockito.Matchers.*;
-import static org.mockito.Mockito.*;
-import static org.neo4j.helpers.collection.MapUtil.map;
+import org.mockito.Matchers;
+import org.neo4j.batchimport.index.LongIterableIndexHits;
+import org.neo4j.batchimport.utils.Config;
+import org.neo4j.graphdb.DynamicLabel;
+import org.neo4j.graphdb.RelationshipType;
+import org.neo4j.index.lucene.unsafe.batchinsert.LuceneBatchInserterIndexProvider;
+import org.neo4j.unsafe.batchinsert.BatchInserter;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
+import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
 
 public class ImporterTest {
 

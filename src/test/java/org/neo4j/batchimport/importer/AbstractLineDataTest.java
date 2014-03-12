@@ -1,13 +1,14 @@
 package org.neo4j.batchimport.importer;
 
-import org.junit.Test;
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.neo4j.helpers.collection.MapUtil.map;
 
 import java.io.StringReader;
 import java.util.Collections;
 
-import static org.junit.Assert.*;
-import static org.junit.Assert.assertArrayEquals;
-import static org.neo4j.helpers.collection.MapUtil.map;
+import org.junit.Test;
 
 /**
  * Created by mh on 26.08.13.

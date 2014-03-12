@@ -2,16 +2,8 @@ package org.neo4j.batchimport;
 
 import org.apache.log4j.Logger;
 import org.neo4j.batchimport.structs.NodeStruct;
-import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.nioneo.store.NodeRecord;
 import org.neo4j.kernel.impl.nioneo.store.RelationshipRecord;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author mh

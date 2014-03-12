@@ -1,11 +1,9 @@
 package org.neo4j.batchimport.importer;
 
-import au.com.bytecode.opencsv.CSVReader;
-
 import java.io.IOException;
 import java.io.Reader;
 
-import static org.neo4j.helpers.collection.MapUtil.map;
+import au.com.bytecode.opencsv.CSVReader;
 
 public class CsvLineData extends AbstractLineData {
     private final CSVReader csvReader;
