@@ -1,5 +1,6 @@
 package org.neo4j.batchimport.csv;
 
+import org.junit.Assert;
 import org.junit.Test;
 import org.neo4j.batchimport.utils.Chunker;
 
@@ -22,7 +23,9 @@ public class StreamTokenizerTest {
     @Test
     public void testReadHeader() throws Exception {
         final BufferedReader reader = new BufferedReader(new StringReader(file));
-        final String[] header = reader.readLine().split("\t");
+        String headerLine = reader.readLine();
+        Assert.assertNotNull(headerLine);
+        final String[] header = headerLine.split("\t");
         final Chunker chunker = new Chunker(reader, '\t');
         readLine(header, chunker, "FOO", "42");
         readLine(header, chunker, "", "42");

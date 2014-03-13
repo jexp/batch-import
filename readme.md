@@ -1,11 +1,13 @@
-# Neo4j (CSV) Batch Importer
+# Neo4j flat file and callback Batch Importer
 
 This software is licensed under the [GPLv3](http://www.gnu.org/licenses/gpl-3.0.en.html) for now. 
 You can ask [Neo Technology](http://neotechnology.com) about a different licensing agreement.
 
-__Works with Neo4j 2.0.0__
+This fork of the batch importer is based on the need for 2.0.1 interoperability and for code quality improvements.
 
-** Note: The initial reference node is gone in Neo4j 2.0, so node-id numbering changed, see below**
+__Works with Neo4j 2.0.1__
+
+** Note: The initial reference node is gone in Neo4j 2.0+, so node-id numbering changed, see below**
 
 ## Binary Download
 
@@ -17,6 +19,10 @@ To simply use it (no source/git/maven required):
 You provide one **tab separated** csv file for nodes and one for relationships (optionally more for indexes)
 
 Example data for the files is a small family network
+
+## Callback based importer
+* In progress, based on integration with Sotera Graphene batch importer.
+
 
 ## File format
 

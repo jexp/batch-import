@@ -13,6 +13,7 @@ import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.neo4j.batchimport.importer.RowData;
+import org.neo4j.batchimport.utils.Config;
 
 /**
  * @author mh
@@ -20,26 +21,32 @@ import org.neo4j.batchimport.importer.RowData;
  */
 @Ignore("Performance")
 public class RowDataPerformanceTest {
-    @Before
-    public void setUp() throws Exception {
-        createTestFileIfNeeded();
-    }
+	private Config config;
 
-    @Test
-    public void testPerformance() throws Exception {
-        final BufferedReader reader = new BufferedReader(new FileReader(TEST_CSV));
-        final RowData rowData = new RowData(reader.readLine(), "\t", 0);
+	@Before
+	public void setUp() throws Exception {
+		createTestFileIfNeeded();
+		config = new Config(null);
+	}
 
-        int res = 0;
-        long time = System.currentTimeMillis();
-        String line;
-        while ((line = reader.readLine()) != null) {
-            rowData.processLine(line);
-            res += rowData.getColumnCount();
-        }
-        reader.close();
-        time = System.currentTimeMillis() - time;
-        System.out.println("time = " + time + " ms.");
-        Assert.assertEquals((ROWS-1) * COLS, res);
-    }
+	@Test
+	public void testPerformance() throws Exception {
+		final BufferedReader reader = new BufferedReader(new FileReader(
+				TEST_CSV));
+		String headerLine = reader.readLine();
+		Assert.assertNotNull(headerLine);
+		final RowData rowData = new RowData(headerLine, "\t", 0, config);
+
+		int res = 0;
+		long time = System.currentTimeMillis();
+		String line;
+		while ((line = reader.readLine()) != null) {
+			rowData.processLine(line);
+			res += rowData.getColumnCount();
+		}
+		reader.close();
+		time = System.currentTimeMillis() - time;
+		System.out.println("time = " + time + " ms.");
+		Assert.assertEquals((ROWS - 1) * COLS, res);
+	}
 }

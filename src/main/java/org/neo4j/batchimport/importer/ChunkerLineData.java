@@ -7,12 +7,13 @@ import java.util.Arrays;
 import java.util.Collection;
 
 import org.neo4j.batchimport.utils.Chunker;
+import org.neo4j.batchimport.utils.Config;
 
 public class ChunkerLineData extends AbstractLineData {
     private final Chunker chunker;
 
-    public ChunkerLineData(Reader reader, char delim, int offset) {
-        super(offset);
+    public ChunkerLineData(Reader reader, char delim, int offset, Config config) {
+        super(offset, config);
         chunker = new Chunker(reader, delim);
         initHeaders(createHeaders(readRawRow()));
         createMapData(lineSize, offset);

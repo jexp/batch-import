@@ -95,8 +95,6 @@ public class TestImporter {
     }
 
     public void createRels(int nodesCount, int relsPerNode, int[] targetNodeOffsets, Map<String, Object> props) {
-        Random rnd = new Random();
-        RelTypes[] values = RelTypes.values();
 
         report.reset();
         for (int node = 0; node < nodesCount; node++) {

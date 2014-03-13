@@ -3,13 +3,15 @@ package org.neo4j.batchimport.importer;
 import java.io.IOException;
 import java.io.Reader;
 
+import org.neo4j.batchimport.utils.Config;
+
 import au.com.bytecode.opencsv.CSVReader;
 
 public class CsvLineData extends AbstractLineData {
     private final CSVReader csvReader;
 
-    public CsvLineData(Reader reader, char delim, int offset) {
-        super(offset);
+    public CsvLineData(Reader reader, char delim, int offset, Config config) {
+        super(offset, config);
         this.csvReader = new CSVReader(reader, delim,'"','\\',0,false,false);
         initHeaders(createHeaders(readRawRow()));
         createMapData(lineSize, offset);

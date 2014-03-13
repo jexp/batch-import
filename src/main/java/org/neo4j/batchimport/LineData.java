@@ -1,6 +1,7 @@
 package org.neo4j.batchimport;
 
 import org.neo4j.batchimport.importer.Type;
+import org.neo4j.batchimport.utils.Config;
 
 import java.util.Map;
 

@@ -10,6 +10,7 @@ import java.util.Map;
 import org.apache.log4j.Logger;
 import org.junit.Ignore;
 import org.neo4j.batchimport.structs.NodeStruct;
+import org.neo4j.batchimport.utils.Config;
 import org.neo4j.consistency.ConsistencyCheckTool;
 import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.util.FileUtils;
@@ -59,7 +60,7 @@ public class DisruptorTest {
 
     public static void main(String[] args) throws Exception {
         FileUtils.deleteRecursively(new File(STORE_DIR));
-        final DisruptorBatchInserter inserter = new DisruptorBatchInserter(STORE_DIR, config(), NODES_TO_CREATE, new TestNodeStructFactory(NODES_TO_CREATE));
+        final DisruptorBatchInserter inserter = new DisruptorBatchInserter(STORE_DIR, getParallelConfig(), NODES_TO_CREATE, new TestNodeStructFactory(NODES_TO_CREATE));
         inserter.init();
         long time = System.currentTimeMillis();
         try {
@@ -73,24 +74,24 @@ public class DisruptorTest {
 
         if (RUN_CHECK) ConsistencyCheckTool.main(new String[]{STORE_DIR});
     }
-
-    private static Map<String, String> config() {
-        if (PROP_FILE.exists()) {
-            try {
-                return MapUtil.load(PROP_FILE);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
-        return stringMap("use_memory_mapped_buffers", "true",
-        //"dump_configuration", "true",
-        "cache_type", "none",
-        "neostore.nodestore.db.mapped_memory", "2G",
-        "neostore.propertystore.db.mapped_memory", "5G",
-        "neostore.relationshipstore.db.mapped_memory", "20G",
-        "neostore.propertystore.db.strings.mapped_memory","2G"
-);
-    }
+    
+    private static Config getParallelConfig() {
+		Map<String, String> configData;
+		if (PROP_FILE.exists()) {
+			configData = Config.configFromFile(PROP_FILE.getAbsolutePath());
+		} else {
+			configData = stringMap(
+					"use_memory_mapped_buffers",
+					"true",
+					// "dump_configuration", "true",
+					"cache_type", "none",
+					"neostore.nodestore.db.mapped_memory", "2G",
+					"neostore.propertystore.db.mapped_memory", "5G",
+					"neostore.relationshipstore.db.mapped_memory", "20G",
+					"neostore.propertystore.db.strings.mapped_memory", "2G");
+		}
+		return new Config(configData);
+	}
 
     public static class TestNodeStructFactory implements NodeStructFactory {
         public static final int RELS_PER_NODE = 10;
