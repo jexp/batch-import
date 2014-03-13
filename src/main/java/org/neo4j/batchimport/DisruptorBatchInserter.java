@@ -5,9 +5,11 @@ import com.lmax.disruptor.RingBuffer;
 import com.lmax.disruptor.SingleThreadedClaimStrategy;
 import com.lmax.disruptor.YieldingWaitStrategy;
 import com.lmax.disruptor.dsl.Disruptor;
+
 import org.apache.log4j.Logger;
 import org.neo4j.batchimport.handlers.*;
 import org.neo4j.batchimport.structs.NodeStruct;
+import org.neo4j.batchimport.utils.Config;
 import org.neo4j.kernel.impl.nioneo.store.NeoStore;
 import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
@@ -39,7 +41,7 @@ public class DisruptorBatchInserter {
     private static final int REPORT_ON_NTH = 100;
     private final int ringSize;
     private final String storeDir;
-    private final Map<String,String> config;
+    private final Map<String,String> configData;
     private final long nodesToCreate;
 
     private PropertyEncodingHandler[] propertyMappingHandlers;
@@ -50,19 +52,21 @@ public class DisruptorBatchInserter {
     private PropertyRecordCreatorHandler propertyRecordCreatorHandler;
     private ForwardRelationshipUpdateHandler forwardRelationshipUpdateHandler;
     private CleanupMemoryHandler cleanupMemoryHandler;
+	private Config config;
 
-    public DisruptorBatchInserter(String storeDir, final Map<String, String> config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
+    public DisruptorBatchInserter(String storeDir, Config config, long nodesToCreate, final NodeStructFactory nodeStructFactory) {
         this.storeDir = storeDir;
         final int minBufferBits = (int) (Math.log(nodesToCreate / 1000) / Math.log(2));
         this.ringSize = 1 << Math.min(minBufferBits,18);
         log.info("Ring size " + ringSize+" processors "+Runtime.getRuntime().availableProcessors());
-        this.config = config;
+        this.config=config;
+        this.configData = config.getConfigData();
         this.nodesToCreate = nodesToCreate;
         this.nodeStructFactory = nodeStructFactory;
     }
 
     void init() {
-        inserter = (BatchInserterImpl) BatchInserters.inserter(storeDir, config);
+        inserter = (BatchInserterImpl) BatchInserters.inserter(storeDir, configData);
         nodeStructFactory.init(inserter);
         NeoStore neoStore = inserter.getNeoStore();
         neoStore.getNodeStore().setHighId(nodesToCreate + 1);
