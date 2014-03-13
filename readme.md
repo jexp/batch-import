@@ -1,4 +1,4 @@
-# Neo4j flat file and callback Batch Importer
+# Neo4j flat file and callback Batch Importer, with maven repo!
 
 This software is licensed under the [GPLv3](http://www.gnu.org/licenses/gpl-3.0.en.html) for now. 
 You can ask [Neo Technology](http://neotechnology.com) about a different licensing agreement.
@@ -11,10 +11,33 @@ __Works with Neo4j 2.0.1__
 
 ## Binary Download
 
-To simply use it (no source/git/maven required):
-* [download zip](https://dl.dropboxusercontent.com/u/14493611/batch_importer_20.zip)
-* unzip
-* run `import.sh test.db nodes.csv rels.csv` (on Windows: `import.bat`)
+To use this with your maven project, add this to the <repositories> section of your POM.xml or settings.xml:
+```xml
+ 		<repository>
+			<id>batch-insert-graphene-mvn-repo</id>
+			<url>https://raw.github.com/danieljue/batch-import-graphene/mvn-repo/</url>
+			<snapshots>
+				<enabled>true</enabled>
+				<updatePolicy>always</updatePolicy>
+			</snapshots>
+		</repository>
+```
+
+Then add this to the <dependencies> section of your POM.xml:
+```xml
+		<dependency>
+			<groupId>org.neo4j</groupId>
+			<artifactId>batch-import</artifactId><!-- Note that for now, this is being 
+				manually synced to the neo4j version specified elsewhere. -->
+			<version>2.0.1</version>
+		</dependency>
+```
+
+###This dependency does not include the batch/shell scripts in the source.
+
+* See the import.sh/import.bat in the root directory for running this on the command line.
+* If you need a standalone zip file, I suggest looking at the original author's fork here: https://github.com/jexp/batch-import
+* As of 2.0.1, the command line options have not changed for my fork.
 
 You provide one **tab separated** csv file for nodes and one for relationships (optionally more for indexes)
 
