@@ -13,6 +13,8 @@ To simply use it (no source/git/maven required):
 * [download zip](https://dl.dropboxusercontent.com/u/14493611/batch_importer_20.zip)
 * unzip
 * run `import.sh test.db nodes.csv rels.csv` (on Windows: `import.bat`)
+* after the import point your `/path/to/neo4j/conf/neo4j-server.properties` to this `test.db` directory, 
+  or copy the data over to your server `cp -r test.db/* /path/to/neo4j/data/graph.db/`
 
 You provide one **tab separated** csv file for nodes and one for relationships (optionally more for indexes)
 
