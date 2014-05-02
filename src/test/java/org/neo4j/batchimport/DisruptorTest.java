@@ -4,7 +4,6 @@ import static java.util.Arrays.asList;
 import static org.neo4j.helpers.collection.MapUtil.stringMap;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Map;
 
 import org.apache.log4j.Logger;
@@ -12,7 +11,6 @@ import org.junit.Ignore;
 import org.neo4j.batchimport.structs.NodeStruct;
 import org.neo4j.batchimport.utils.Config;
 import org.neo4j.consistency.ConsistencyCheckTool;
-import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.batchinsert.BatchInserterImpl;
 
