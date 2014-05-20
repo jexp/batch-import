@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2002-2013 "Neo Technology,"
+ * Copyright (c) 2002-2014 "Neo Technology,"
  * Network Engine for Objects in Lund AB [http://neotechnology.com]
  *
  * This file is part of Neo4j.
@@ -26,6 +26,8 @@ import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import static org.neo4j.kernel.impl.util.Providers.singletonProvider;
 
 public class PropertyBlock implements Cloneable
 {
@@ -235,6 +237,6 @@ public class PropertyBlock implements Cloneable
 
     public DefinedProperty newPropertyData( PropertyStore propertyStore )
     {
-        return getType().readProperty( getKeyIndexId(), this, propertyStore );
+        return getType().readProperty( getKeyIndexId(), this, singletonProvider(propertyStore) );
     }
 }
