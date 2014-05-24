@@ -30,6 +30,7 @@ public interface LineData {
     Header[] getHeader();
     long getId();
     Map<String,Object> getProperties();
+    Object[] getPropertyData();
     Map<String,Map<String,Object>> getIndexData();
     String[] getTypeLabels();
     String getRelationshipTypeLabel();

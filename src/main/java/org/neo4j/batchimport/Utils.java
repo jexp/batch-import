@@ -1,17 +1,8 @@
 package org.neo4j.batchimport;
 
 import org.apache.log4j.Logger;
-import org.neo4j.batchimport.structs.NodeStruct;
-import org.neo4j.helpers.collection.MapUtil;
 import org.neo4j.kernel.impl.nioneo.store.NodeRecord;
 import org.neo4j.kernel.impl.nioneo.store.RelationshipRecord;
-
-import java.io.File;
-import java.io.FileWriter;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * @author mh
@@ -44,14 +35,6 @@ public class Utils {
 
     private static String formatRecord(RelationshipRecord record) {
         return String.format("Rel[%d] %s-[%d]->%s created %s chain start: %d->%d target %d->%d", record.getId(), record.getFirstNode(), record.getType(), record.getSecondNode(), record.isCreated(), record.getFirstPrevRel(), record.getFirstNextRel(), record.getSecondPrevRel(), record.getSecondNextRel());
-    }
-
-    private static void printNode(NodeStruct record) {
-        if (log.isDebugEnabled()) log.debug(formatNode(record));
-    }
-
-    private static String formatNode(NodeStruct record) {
-        return String.format("Node[%d] -> %d, .%d", record.id, record.firstRel, record.firstPropertyId);
     }
 
     private static String formatNode(NodeRecord record) {

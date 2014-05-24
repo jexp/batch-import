@@ -89,6 +89,11 @@ public abstract class AbstractLineData implements LineData {
     }
 
     @Override
+    public Object[] getPropertyData() {
+        return propertyData();
+    }
+
+    @Override
     public Map<String, Map<String, Object>> getIndexData() {
         if (!hasIndex) return Collections.EMPTY_MAP;
         Map<String, Map<String, Object>> indexData = new HashMap<String, Map<String, Object>>();
@@ -173,6 +178,15 @@ public abstract class AbstractLineData implements LineData {
         Object[] newData=new Object[propertyCount];
         System.arraycopy(properties,0,newData,0, propertyCount);
         return map(newData);
+    }
+    private Object[] propertyData() {
+        if (propertyCount == properties.length) {
+            return properties;
+        }
+        Object[] newData=new Object[propertyCount];
+        System.arraycopy(properties,0,newData,0, propertyCount);
+        //TODO properties = newData;
+        return newData;
     }
 
     public int getColumnCount() {

@@ -172,6 +172,16 @@ public class RowData implements LineData {
         return map(newData);
     }
 
+    public Object[] getPropertyData() {
+        if (propertyCount == properties.length) {
+            return properties;
+        }
+        Object[] newData=new Object[propertyCount];
+        System.arraycopy(properties,0,newData,0, propertyCount);
+        // TODO TEST properties = newData;
+        return newData;
+    }
+
     public int getColumnCount() {
         return this.propertyCount/2;
     }
