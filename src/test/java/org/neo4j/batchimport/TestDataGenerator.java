@@ -64,7 +64,7 @@ public class TestDataGenerator {
         int numTypes = types.length;
         for (int node = 0; node < nodes; node++) {
             final int rels = rnd.nextInt(relsPerNode);
-            nodeFile.write(node+"\t"+rels+"\tTEST\t"+node+"\n");
+            nodeFile.write(node+"\t"+rels+"\tValue"+node+"\tTEST\t"+node+"\n");
             for (int rel = rels; rel >= 0; rel--) {
                 relCount++;
                 final int target = node + rnd.nextInt(nodes -node);

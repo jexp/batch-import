@@ -6,7 +6,7 @@
     <name>Neo4j Batch Importer</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <neo4j.version>2.1.0-RC1</neo4j.version>
+        <neo4j.version>2.1.2</neo4j.version>
         <license-text.header>GPL-3-header.txt</license-text.header>
     </properties>
   <repositories>

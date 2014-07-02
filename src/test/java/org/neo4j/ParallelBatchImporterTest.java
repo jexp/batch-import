@@ -52,7 +52,7 @@ public class ParallelBatchImporterTest {
         FileUtils.deleteRecursively(new File(STORE_DIR));
         CoarseUnboundedProgressExecutionMonitor monitor = new CoarseUnboundedProgressExecutionMonitor(10_000);
         org.neo4j.kernel.configuration.Config kernelConfig = new org.neo4j.kernel.configuration.Config();
-        Configuration configuration = new Configuration.FromConfig(kernelConfig);
+        Configuration configuration = new Configuration.OverrideFromConfig(kernelConfig);
         return new ParallellBatchImporter(STORE_DIR, new ChannelReusingFileSystemAbstraction(new DefaultFileSystemAbstraction()), configuration, null, monitor);
     }
 

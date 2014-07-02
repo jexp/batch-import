@@ -69,7 +69,7 @@ public class Importer {
     protected BatchImporter createBatchInserter(File graphDb, Config config) {
         CoarseUnboundedProgressExecutionMonitor monitor = new CoarseUnboundedProgressExecutionMonitor(10_000);
         org.neo4j.kernel.configuration.Config kernelConfig = new org.neo4j.kernel.configuration.Config();
-        Configuration configuration = new Configuration.FromConfig(kernelConfig);
+        Configuration configuration = new Configuration.OverrideFromConfig(kernelConfig);
         return new ParallellBatchImporter(graphDb.getAbsolutePath(), new ChannelReusingFileSystemAbstraction(new DefaultFileSystemAbstraction()), configuration,null, monitor);
     }
 
