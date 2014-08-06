@@ -8,7 +8,7 @@ import org.neo4j.kernel.DefaultFileSystemAbstraction;
 import org.neo4j.kernel.impl.util.FileUtils;
 import org.neo4j.unsafe.impl.batchimport.Configuration;
 import org.neo4j.unsafe.impl.batchimport.ParallellBatchImporter;
-import org.neo4j.unsafe.impl.batchimport.cache.NodeIdMapping;
+import org.neo4j.unsafe.impl.batchimport.cache.IdMappers;
 import org.neo4j.unsafe.impl.batchimport.input.InputNode;
 import org.neo4j.unsafe.impl.batchimport.input.InputRelationship;
 import org.neo4j.unsafe.impl.batchimport.staging.CoarseUnboundedProgressExecutionMonitor;
@@ -29,6 +29,7 @@ import static org.junit.Assert.assertEquals;
 public class ParallelBatchImporterTest {
 
     public static final String STORE_DIR = "target/test_par.db";
+    public static final IdMappers.ActualIdMapper ID_MAPPER = new IdMappers.ActualIdMapper();
 
     @Test
     public void testSimpleImport() throws Exception {
@@ -36,7 +37,7 @@ public class ParallelBatchImporterTest {
         importer.doImport(
                 asList(new InputNode(0, new Object[]{"name", "Michael"}, null, new String[]{"Person"}, null),
                         new InputNode(1, new Object[]{"name", "Mark"}, null, new String[]{"Person"}, null)),
-                asList(new InputRelationship(0, new Object[]{"since", "2012"}, null, 0, 1, "KNOWS", null)), NodeIdMapping.actual
+                asList(new InputRelationship(0, new Object[]{"since", "2012"}, null, 0, 1, "KNOWS", null)), ID_MAPPER
         );
         importer.shutdown();
         GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(STORE_DIR);
@@ -63,7 +64,7 @@ public class ParallelBatchImporterTest {
         long start = System.currentTimeMillis();
         importer.doImport(
                 inputNodes(createSource(max)),
-                Arrays.<InputRelationship>asList(), NodeIdMapping.actual);
+                Arrays.<InputRelationship>asList(), ID_MAPPER);
         importer.shutdown();
         System.out.println("took = " + (System.currentTimeMillis()-start)+" ms");
         GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(STORE_DIR);
