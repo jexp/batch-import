@@ -26,7 +26,7 @@ public class NodeWriteRecordHandler implements EventHandler<NodeStruct> {
     }
 
     private NodeRecord createRecord(NodeStruct event, long id) {
-        NodeRecord record = new NodeRecord(id, event.firstRel, event.firstPropertyId);
+        NodeRecord record = new NodeRecord(id, false, event.firstRel, event.firstPropertyId);
         record.setInUse(true);
         record.setCreated();
         return record;

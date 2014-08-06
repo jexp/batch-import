@@ -65,7 +65,7 @@ public class InlineNodeLabelsTest {
     @Test
     public void testPerformance() throws Exception {
         long[] ids = {3, 2, 6, 4};
-        InlineNodeLabels inlineNodeLabels = new InlineNodeLabels(0L, new NodeRecord(0,-1,-1));
+        InlineNodeLabels inlineNodeLabels = new InlineNodeLabels(0L, new NodeRecord(0,false,-1,-1));
         long time=System.currentTimeMillis();
         for (int i=0;i<1_0000_000;i++) {
             inlineNodeLabels.tryInlineInNodeRecord(ids, NONE);

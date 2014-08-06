@@ -83,7 +83,6 @@ public class PropertyBlock implements Cloneable
     public void addValueRecord( DynamicRecord record )
     {
         valueRecords.add( record );
-        light = false;
     }
 
     public List<DynamicRecord> getValueRecords()
@@ -126,7 +125,7 @@ public class PropertyBlock implements Cloneable
 
     public boolean isLight()
     {
-        return light;
+        return valueRecords.isEmpty();
     }
 
     public void setValueBlocks( long[] blocks )
@@ -225,6 +224,7 @@ public class PropertyBlock implements Cloneable
         {
             result.valueRecords.add( valueRecord.clone() );
         }
+        result.light = light;
         return result;
     }
 
