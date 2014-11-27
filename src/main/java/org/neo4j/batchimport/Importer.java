@@ -15,6 +15,7 @@ import org.neo4j.unsafe.batchinsert.BatchInserter;
 import org.neo4j.unsafe.batchinsert.BatchInserters;
 import org.neo4j.unsafe.batchinsert.BatchInserterIndexProvider;
 import org.neo4j.unsafe.batchinsert.BatchInserterIndex;
+import org.neo4j.graphdb.index.IndexHits;
 
 import java.io.*;
 import java.util.*;
@@ -35,21 +36,30 @@ public class Importer {
     Map<String,BatchInserterIndex> indexes=new HashMap<String, BatchInserterIndex>();
     private Label[] labelsArray = NO_LABELS;
 
+    private String primary_key;
+    private String rel_primary_key;
+    private boolean luceneOnlyIndex;
+
+    private Map<Long, Long> lineno_nodeid = new HashMap<Long, Long>();
+
     public Importer(File graphDb, final Config config) {
         this.config = config;
         db = createBatchInserter(graphDb, config);
 
-        final boolean luceneOnlyIndex = config.isCachedIndexDisabled();
+        primary_key = config.getIndexPrimaryKey(); 
+        rel_primary_key = config.getRelationshipIndexPrimaryKey(); 
+        luceneOnlyIndex = config.isCachedIndexDisabled();
         indexProvider = createIndexProvider(luceneOnlyIndex);
         Collection<IndexInfo> indexInfos = config.getIndexInfos();
         if (indexInfos!=null) {
             for (IndexInfo indexInfo : indexInfos) {
                 BatchInserterIndex index = indexInfo.isNodeIndex() ? nodeIndexFor(indexInfo.indexName, indexInfo.indexType) : relationshipIndexFor(indexInfo.indexName, indexInfo.indexType);
                 indexes.put(indexInfo.indexName, index);
+                
             }
         }
-
         report = createReport();
+        //System.out.println("primary key:"+config.getIndexPrimaryKey());
     }
 
     protected StdOutReport createReport() {
@@ -91,9 +101,48 @@ public class Importer {
 
     void importNodes(Reader reader) throws IOException {
         final LineData data = createLineData(reader, 0);
+        long lineno = 0, unique_nodes = 0;
+        long hit_cache = 0, hit_index = 0;
         report.reset();
         boolean hasId = data.hasId();
+        Map<String, Long> primary_key_cache = new HashMap<String, Long>();
         while (data.processLine(null)) {
+            boolean have_node = false;
+            if (luceneOnlyIndex && !primary_key.equals("")) {
+                for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+
+                    final BatchInserterIndex index = indexFor(entry.getKey());
+                    if (index==null)
+                        throw new IllegalStateException("Index "+entry.getKey()+" not configured.");
+                    if (primary_key.equals("") == false) {
+                        if (entry.getValue().containsKey(primary_key)) {
+                            String primary_key_value = (String)(entry.getValue().get(primary_key));
+                            if (primary_key_cache.containsKey(primary_key_value)) {
+                                hit_cache += 1;
+                                lineno_nodeid.put(lineno, primary_key_cache.get(primary_key_value));
+                                have_node = true;
+                                break;
+                            }
+                            IndexHits<Long> hits = index.get(primary_key, (entry.getValue()).get(primary_key));
+                            if (hits.size() != 0) {
+                                //iterator can't recall twice
+                                Long nodeid = hits.getSingle();
+                                lineno_nodeid.put(lineno, nodeid);
+                                primary_key_cache.put(primary_key_value, nodeid);
+                                hit_index += 1;
+                                have_node = true;
+                                hits.close();
+                                break;
+                            }
+                            hits.close();
+                        }
+                    }
+                }
+            }
+            if (have_node) {
+                lineno ++;
+                continue;
+            }
             String[] labels = data.getTypeLabels();
             long id;
             if (hasId) {
@@ -102,16 +151,23 @@ public class Importer {
             } else {
                 id = db.createNode(data.getProperties(),labelsFor(labels));
             }
+            unique_nodes += 1;
             for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
                 final BatchInserterIndex index = indexFor(entry.getKey());
                 if (index==null)
                     throw new IllegalStateException("Index "+entry.getKey()+" not configured.");
+                if (entry.getValue().containsKey(primary_key)) {
+                    String primary_key_value = (String)(entry.getValue().get(primary_key));
+                    primary_key_cache.put(primary_key_value, id);
+                }
                 index.add(id, entry.getValue());
             }
             report.dots();
-
+            lineno_nodeid.put(lineno, id);
             if (report.getCount() % BATCH == 0) flushIndexes();
+            lineno++;
         }
+        System.out.println("lineno_nodeid map:" + lineno_nodeid.size() + ",unique nodes num:" + unique_nodes + ",hit_cache times:" + hit_cache + ", hit_index:" + hit_index);
         flushIndexes();
         report.finishImport("Nodes");
     }
@@ -139,24 +195,66 @@ public class Importer {
         final int offset = 3;
         final LineData data = createLineData(reader, offset);
         final RelType relType = new RelType();
+        long unique_nodes = 0;
         long skipped=0;
         report.reset();
+        
+        long hit_cache = 0, hit_index = 0;
+        Map<String, Long> rel_primary_key_cache = new HashMap<String, Long>();
 
         while (data.processLine(null)) {
+            boolean have_rel = false;
+            if (luceneOnlyIndex && !rel_primary_key.equals("")) {
+                for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+                    final BatchInserterIndex index = indexFor(entry.getKey());
+                    if (index==null)
+                        throw new IllegalStateException("Index "+entry.getKey()+" not configured.");
+                    if (rel_primary_key.equals("") == false) {
+                        if (entry.getValue().containsKey(rel_primary_key)) {
+                            String rel_primary_key_value = (String)entry.getValue().get(rel_primary_key);
+                            if (rel_primary_key_cache.containsKey(rel_primary_key_value)) {
+                                hit_cache += 1;
+                                have_rel = true;
+                                break;
+                            }
+                            IndexHits<Long> hits = index.get(rel_primary_key, rel_primary_key_value);
+                            if (hits.size() != 0) {
+                                //iterator can't recall twice
+                                Long relid = hits.getSingle();
+                                rel_primary_key_cache.put(rel_primary_key_value, relid);
+                                hit_index += 1;
+                                have_rel = true;
+                                hits.close();
+                                break;
+                            }
+                            hits.close();
+                        }
+                    }
+                }
+            }
+            if (have_rel) {
+                continue;
+            }
             final Map<String, Object> properties = data.getProperties();
-            final long start = id(data, 0);
-            final long end = id(data, 1);
+            final long start = lineno_nodeid.get(id(data, 0));
+            final long end = lineno_nodeid.get(id(data, 1));
             if (start==-1 || end==-1) {
                 skipped++;
                 continue;
             }
             final RelType type = relType.update(data.getRelationshipTypeLabel());
             final long id = db.createRelationship(start, end, type, properties);
+            unique_nodes += 1;
             for (Map.Entry<String, Map<String, Object>> entry : data.getIndexData().entrySet()) {
+                if (entry.getValue().containsKey(rel_primary_key)) {
+                    String rel_primary_key_value = (String)(entry.getValue().get(rel_primary_key));
+                    rel_primary_key_cache.put(rel_primary_key_value, id);
+                }
                 indexFor(entry.getKey()).add(id, entry.getValue());
             }
             report.dots();
         }
+        System.out.println("import unique relationships num:" + unique_nodes + ",hit_cache times:" + hit_cache + ", hit_index:" + hit_index);
         String msg = "Relationships";
         if (skipped > 0) msg += " skipped (" + skipped + ")";
         report.finishImport(msg);
@@ -226,10 +324,12 @@ public class Importer {
         try {
             for (File file : config.getNodesFiles()) {
                 importNodes(createFileReader(file));
+                System.out.println("node file " + file);
             }
 
             for (File file : config.getRelsFiles()) {
                 importRelationships(createFileReader(file));
+                System.out.println("rel file " + file);
             }
 
             for (IndexInfo indexInfo : config.getIndexInfos()) {

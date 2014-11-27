@@ -22,6 +22,8 @@ public class Config {
     public static final String BATCH_IMPORT_CSV_QUOTES = "batch_import.csv.quotes";
     public static final String BATCH_IMPORT_CSV_DELIM = "batch_import.csv.delim";
     public static final String ARRAY_SEPARATOR_CONFIG = "batch_array_separator";
+    public static final String INDEX_PRIMARY_KEY = "index_primary_key";
+    public static final String RELATIONSHIP_INDEX_PRIMARY_KEY = "relationship_index_primary_key";
     public static String ARRAYS_SEPARATOR = ",";
 
     private final Map<String, String> configData;
@@ -134,6 +136,23 @@ public class Config {
         }
         return result;
     }
+
+    public String getIndexPrimaryKey()
+    {
+        if (this.configData.containsKey(INDEX_PRIMARY_KEY)) {
+            return this.configData.get(INDEX_PRIMARY_KEY);
+        }
+        return "";
+    }
+
+    public String getRelationshipIndexPrimaryKey()
+    {
+        if (this.configData.containsKey(RELATIONSHIP_INDEX_PRIMARY_KEY)) {
+            return this.configData.get(RELATIONSHIP_INDEX_PRIMARY_KEY);
+        }
+        return "";
+    }
+
 
     public static boolean configOptionEnabled(Config config, String option) {
         return "true".equalsIgnoreCase(config.get(option));
