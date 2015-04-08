@@ -3,14 +3,12 @@
 This software is licensed under the [GPLv3](http://www.gnu.org/licenses/gpl-3.0.en.html) for now. 
 You can ask [Neo Technology](http://neotechnology.com) about a different licensing agreement.
 
-__Works with Neo4j 2.0.0__
-
-** Note: The initial reference node is gone in Neo4j 2.0, so node-id numbering changed, see below**
+__Works with Neo4j 2.x__
 
 ## Binary Download
 
 To simply use it (no source/git/maven required):
-* [download zip](https://dl.dropboxusercontent.com/u/14493611/batch_importer_21.zip)
+* [download 2.2 zip](https://dl.dropboxusercontent.com/u/14493611/batch_importer_22.zip)
 * unzip
 * run `import.sh test.db nodes.csv rels.csv` (on Windows: `import.bat`)
 * after the import point your `/path/to/neo4j/conf/neo4j-server.properties` to this `test.db` directory, 
