@@ -2,11 +2,11 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>org.neo4j</groupId>
     <artifactId>batch-import</artifactId>
-    <version>2.1.8</version>
+    <version>2.2.0</version>
     <name>Neo4j Batch Importer</name>
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <neo4j.version>2.1.8</neo4j.version>
+        <neo4j.version>2.2.0</neo4j.version>
         <license-text.header>GPL-3-header.txt</license-text.header>
     </properties>
   <repositories>
