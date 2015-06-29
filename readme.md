@@ -1,5 +1,16 @@
 # Neo4j (CSV) Batch Importer
 
+## Neo4j 2.2+ neo4j-import tool
+
+Since version 2.2.0 Neo4j comes with an **high performance import tool** out of the box that takes many ideas of this one, but is way more scalable across CPUs and has little memory requirements.
+
+The only cases that are not covered are repeated imports in existing stores and population of manual indexes. Please consider the built-in and officially supported tool first, before falling back onto this one.
+
+The simplest invocation is `/path/to/neo4j/bin/neo4j-import --into graph.db --nodes nodes.csv --relationships rels.csv` with the header format being similar to this one. For a quick intro check the [developer pages](http://neo4j.com/developer/guide-import-csv/#_super_fast_batch_importer_for_huge_datasets). 
+There is much more to it, please see the [Neo4j reference manual](http://neo4j.com/docs/stable/import-tool.html). 
+
+## Licensing
+
 This software is licensed under the [GPLv3](http://www.gnu.org/licenses/gpl-3.0.en.html) for now. 
 You can ask [Neo Technology](http://neotechnology.com) about a different licensing agreement.
 
