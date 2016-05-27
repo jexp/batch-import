@@ -1,7 +1,7 @@
 package org.neo4j.batchimport.utils;
 
 import org.junit.Test;
-import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.helpers.collection.Iterators;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -57,7 +57,7 @@ public class FileIteratorTest {
         String file = writeFile(LINES_1M);
         FileIterator reader = new FileIterator(file);
         long time = System.currentTimeMillis();
-        int count = IteratorUtil.count(reader);
+        int count = (int) Iterators.count(reader);
         long delta = System.currentTimeMillis() - time;
         System.out.println("delta = " + delta);
         assertTrue("timeout "+delta+" > 1000 ms", delta < 1000);

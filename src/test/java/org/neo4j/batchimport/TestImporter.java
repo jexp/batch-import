@@ -49,8 +49,8 @@ public class TestImporter {
         return new LuceneBatchInserterIndexProvider(db);
     }
 
-    protected BatchInserter createBatchInserter(File graphDb, Map<String, String> config) {
-        return BatchInserters.inserter(graphDb.getAbsolutePath(), config);
+    protected BatchInserter createBatchInserter(File graphDb, Map<String, String> config) throws IOException {
+        return BatchInserters.inserter(new File(graphDb.getAbsolutePath()), config);
     }
 
     public static void main(String[] args) throws IOException {

@@ -2,7 +2,7 @@ package org.neo4j.batchimport.index;
 
 import org.neo4j.graphdb.ResourceIterator;
 import org.neo4j.graphdb.index.IndexHits;
-import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.helpers.collection.Iterables;
 
 import java.util.Iterator;
 
@@ -22,7 +22,7 @@ public class LongIterableIndexHits implements IndexHits<Long>, ResourceIterator<
 
     @Override
     public int size() {
-        return IteratorUtil.count(values);
+        return (int) Iterables.count(values);
     }
 
     @Override
@@ -34,7 +34,7 @@ public class LongIterableIndexHits implements IndexHits<Long>, ResourceIterator<
 
     @Override
     public Long getSingle() {
-        return IteratorUtil.singleOrNull(values);
+        return Iterables.singleOrNull(values);
     }
 
     @Override

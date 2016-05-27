@@ -7,17 +7,11 @@ import org.neo4j.graphdb.Node;
 import org.neo4j.graphdb.Transaction;
 import org.neo4j.graphdb.factory.GraphDatabaseFactory;
 import org.neo4j.io.fs.FileUtils;
-import org.neo4j.tooling.GlobalGraphOperations;
 
 import java.io.File;
 import java.io.FileWriter;
-import java.io.StringReader;
 
 import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.neo4j.helpers.collection.MapUtil.map;
 
 /**
  * @author Michael Hunger @since 05.11.13
@@ -42,9 +36,9 @@ public class ImporterIntegrationTest {
         writer.close();
         Importer.main(DB_DIRECTORY,"target/hashes.csv");
         ConsistencyCheckTool.main(new String[]{DB_DIRECTORY});
-        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(DB_DIRECTORY);
+        GraphDatabaseService db = new GraphDatabaseFactory().newEmbeddedDatabase(new File(DB_DIRECTORY));
         try (Transaction tx = db.beginTx()) {
-            for (Node node : GlobalGraphOperations.at(db).getAllNodes()) {
+            for (Node node : db.getAllNodes()) {
                 Object value = node.getProperty("a", null);
                 System.out.println("value = " + value);
                 assertTrue(value != null);

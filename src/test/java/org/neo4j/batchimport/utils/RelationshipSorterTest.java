@@ -1,8 +1,7 @@
 package org.neo4j.batchimport.utils;
 
-import org.junit.Ignore;
 import org.junit.Test;
-import org.neo4j.helpers.collection.IteratorUtil;
+import org.neo4j.helpers.collection.Iterators;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
@@ -34,7 +33,7 @@ public class RelationshipSorterTest {
             }
         }
         writer.close();
-        assertEquals(written,IteratorUtil.count(new FileIterator(fileName)));
+        assertEquals(written, Iterators.count(new FileIterator(fileName)));
 
         RelationshipSorter.main(fileName, targetFile);
         BufferedReader reader = new BufferedReader(new FileReader(targetFile));

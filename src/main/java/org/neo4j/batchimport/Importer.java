@@ -21,8 +21,8 @@ import java.util.*;
 import java.util.zip.GZIPInputStream;
 
 import static org.neo4j.batchimport.Utils.join;
-import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.EXACT_CONFIG;
-import static org.neo4j.index.impl.lucene.LuceneIndexImplementation.FULLTEXT_CONFIG;
+import static org.neo4j.index.impl.lucene.legacy.LuceneIndexImplementation.EXACT_CONFIG;
+import static org.neo4j.index.impl.lucene.legacy.LuceneIndexImplementation.FULLTEXT_CONFIG;
 
 public class Importer {
     private static final Map<String, String> SPATIAL_CONFIG = Collections.singletonMap(IndexManager.PROVIDER,"spatial");
@@ -35,7 +35,7 @@ public class Importer {
     Map<String,BatchInserterIndex> indexes=new HashMap<String, BatchInserterIndex>();
     private Label[] labelsArray = NO_LABELS;
 
-    public Importer(File graphDb, final Config config) {
+    public Importer(File graphDb, final Config config) throws IOException {
         this.config = config;
         db = createBatchInserter(graphDb, config);
 
@@ -60,8 +60,8 @@ public class Importer {
         return luceneOnlyIndex ? new LuceneBatchInserterIndexProvider(db) : new MapDbCachingIndexProvider(db);
     }
 
-    protected BatchInserter createBatchInserter(File graphDb, Config config) {
-        return BatchInserters.inserter(graphDb.getAbsolutePath(), config.getConfigData());
+    protected BatchInserter createBatchInserter(File graphDb, Config config) throws IOException {
+        return BatchInserters.inserter(new File(graphDb.getAbsolutePath()), config.getConfigData());
     }
 
     // todo multiple nodes and rels files
