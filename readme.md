@@ -14,6 +14,8 @@ There is much more to it, please see the [Neo4j reference manual](http://neo4j.c
 This software is licensed under the [GPLv3](http://www.gnu.org/licenses/gpl-3.0.en.html) for now. 
 You can ask [Neo Technology](http://neotechnology.com) about a different licensing agreement.
 
+<!--
+
 __Works with Neo4j 2.x__
 
 ## Binary Download
@@ -324,3 +326,4 @@ for the actual sorting with a custom Comparator.
 `org.neo4j.batchimport.utils.RelationshipSorter` rels-input.csv rels-output.csv
 
 
+-->
