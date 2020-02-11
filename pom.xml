@@ -12,7 +12,7 @@
   <repositories>
     <repository>
       <id>Neo4j Snapshots</id>
-      <url>http://m2.neo4j.org/content/repositories/snapshots</url>
+      <url>https://m2.neo4j.org/content/repositories/snapshots</url>
     </repository>
   </repositories>
 
